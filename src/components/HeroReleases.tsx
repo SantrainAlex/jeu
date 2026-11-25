@@ -35,22 +35,24 @@ export async function HeroReleases() {
           </p>
         </div>
       </article>
-      <div className="hero-side">
+      <ol className="hero-side">
         {rest.map((g) => (
-          <article key={g.id} className="hero-mini">
-            {g.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={g.image} alt="" loading="lazy" />
-            ) : (
-              <div className="hero-fallback" />
-            )}
-            <div className="hero-overlay">
+          <li key={g.id} className="hero-mini">
+            <span className="hero-thumb">
+              {g.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={g.image} alt="" loading="lazy" />
+              ) : (
+                <span className="hero-fallback" />
+              )}
+            </span>
+            <span className="hero-info">
               <h3>{g.name}</h3>
-              <p className="mono">{date(g.released)}</p>
-            </div>
-          </article>
+              <span className="mono">{date(g.released)}</span>
+            </span>
+          </li>
         ))}
-      </div>
+      </ol>
       <Link href="/plateforme/pc?periode=semaine" className="sr-only">
         Voir toutes les sorties de la semaine
       </Link>
@@ -64,7 +66,12 @@ export function HeroSkeleton() {
       <div className="hero-main skeleton-block" />
       <div className="hero-side">
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="hero-mini skeleton-block" />
+          <div key={i} className="hero-mini">
+            <span className="hero-thumb skeleton-block" />
+            <span className="hero-info">
+              <span className="skeleton-line skeleton-block" />
+            </span>
+          </div>
         ))}
       </div>
     </div>
