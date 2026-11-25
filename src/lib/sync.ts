@@ -1,5 +1,11 @@
 import type { Data } from "./data";
 
+type Stock = { stock?: number; stockAt?: string | null };
+const latestStock = (a: Stock, b: Stock): Stock => {
+  const pick = !a.stockAt ? b : !b.stockAt ? a : a.stockAt >= b.stockAt ? a : b;
+  return pick.stockAt ? { stock: pick.stock, stockAt: pick.stockAt } : {};
+};
+
 const latestDay = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b ? a : b);
 
 /**
@@ -51,6 +57,8 @@ export function mergeData(local: Data, cloud: Data): Data {
       cards,
       vitraux,
       lastFreeDay: latestDay(local.collection.lastFreeDay, cloud.collection.lastFreeDay),
+      // réserve de boosters : celle de la dernière ouverture (la plus récente)
+      ...latestStock(local.collection, cloud.collection),
       bonusClaimed: Math.max(local.collection.bonusClaimed, cloud.collection.bonusClaimed),
       packsOpened: Math.max(local.collection.packsOpened, cloud.collection.packsOpened),
       vitrailsGiven: Math.max(local.collection.vitrailsGiven, cloud.collection.vitrailsGiven),

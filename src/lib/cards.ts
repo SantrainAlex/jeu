@@ -125,7 +125,12 @@ export function openPack(
 /** Un booster offert tous les N nouveaux jeux notés. */
 export const RATINGS_PER_BONUS = 3;
 
-/** Jour local au format AAAA-MM-JJ (le booster gratuit revient chaque jour à minuit). */
+/** Un booster se recharge toutes les 30 minutes… */
+export const RECHARGE_MS = 30 * 60 * 1000;
+/** …jusqu'à 5 boosters en réserve : à 5, la recharge s'arrête ; dès qu'on en ouvre un, elle repart. */
+export const MAX_STOCK = 5;
+
+/** Jour local au format AAAA-MM-JJ. */
 export function localDay(date = new Date()) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -133,8 +138,41 @@ export function localDay(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
-export function availablePacks(state: { lastFreeDay: string | null; bonusClaimed: number }, ratingsCount: number, today = localDay()) {
-  const free = state.lastFreeDay === today ? 0 : 1;
+export type PackState = {
+  /** boosters en réserve au moment `stockAt` (null = jamais utilisé : la réserve est pleine) */
+  stock?: number;
+  stockAt?: string | null;
+  bonusClaimed: number;
+};
+
+/**
+ * Réserve de boosters qui se recharge : combien il y en a maintenant, et depuis quand la recharge en cours a commencé.
+ * Si la réserve est pleine, la recharge est à l'arrêt (since = maintenant).
+ */
+export function recharge(state: PackState, now = Date.now()) {
+  if (!state.stockAt) return { count: MAX_STOCK, since: now };
+  const at = new Date(state.stockAt).getTime();
+  const gained = Math.max(0, Math.floor((now - at) / RECHARGE_MS));
+  const count = Math.min(MAX_STOCK, (state.stock ?? 0) + gained);
+  return { count, since: count >= MAX_STOCK ? now : at + gained * RECHARGE_MS };
+}
+
+export function availablePacks(state: PackState, ratingsCount: number, now = Date.now()) {
+  const { count, since } = recharge(state, now);
   const bonus = Math.max(0, Math.floor(ratingsCount / RATINGS_PER_BONUS) - state.bonusClaimed);
-  return { free, bonus, total: free + bonus };
+  return {
+    timed: count,
+    bonus,
+    total: count + bonus,
+    /** millisecondes avant le prochain booster (null si la réserve est pleine) */
+    nextIn: count >= MAX_STOCK ? null : since + RECHARGE_MS - now,
+  };
+}
+
+/** Nouvel état après l'ouverture d'un booster : la réserve d'abord, sinon un bonus gagné en notant. */
+export function consumePack(state: PackState, ratingsCount: number, now = Date.now()): PackState | null {
+  const { count, since } = recharge(state, now);
+  if (count > 0) return { ...state, stock: count - 1, stockAt: new Date(since).toISOString() };
+  if (availablePacks(state, ratingsCount, now).bonus > 0) return { ...state, bonusClaimed: state.bonusClaimed + 1 };
+  return null;
 }

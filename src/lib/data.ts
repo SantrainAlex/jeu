@@ -40,8 +40,11 @@ export type Collection = {
   cards: Record<string, OwnedCard>;
   /** vitraux numérotés obtenus */
   vitraux: { card: Card; number: number; at: string }[];
-  /** dernier jour où le booster gratuit a été ouvert */
+  /** ancien système (1 booster par jour), gardé pour les anciennes données */
   lastFreeDay: string | null;
+  /** boosters en réserve (1 toutes les 30 min, 5 maximum) au moment `stockAt` ; null = réserve pleine */
+  stock?: number;
+  stockAt?: string | null;
   /** nombre de boosters bonus (gagnés en notant) déjà ouverts */
   bonusClaimed: number;
   packsOpened: number;
