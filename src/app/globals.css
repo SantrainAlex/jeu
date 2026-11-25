@@ -288,8 +288,13 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .tastes { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.2rem; margin: 1rem 0 1.5rem; }
 .tastes p { margin-bottom: 0.4rem; }
 
-.account-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.5rem; max-width: 560px; margin-top: 1rem; display: grid; gap: 0.6rem; }
+.account-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.5rem; max-width: 560px; margin-top: 1rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
 .account-box .search { margin: 0; }
+@media (max-width: 560px) {
+  .account-box { padding: 1.1rem; }
+  .account-box .search { flex-wrap: wrap; }
+  .account-box .search input, .account-box .search button { flex: 1 1 100%; }
+}
 .account-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; }
 .sync { font-size: 0.9rem; color: var(--success); min-height: 1.2em; }
 .sync.error { color: var(--warning); }
