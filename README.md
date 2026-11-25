@@ -53,3 +53,12 @@ on passera à de vrais comptes en ligne quand le site sera ouvert à tes amis.
 
 `/plateforme/<plateforme>/catalogue` (onglet « 📚 Catalogue ») : tous les jeux déjà sortis, avec recherche par nom,
 tri (populaires, mieux notés, plus récents) et pages de 24 jeux. Pratique pour retrouver et noter tes anciens jeux.
+
+## Étape 3 : cartes à collectionner
+
+- `/cartes` : ouvre des boosters de 5 cartes (1 gratuit par jour, +1 tous les 3 jeux notés), retourne les cartes une à une.
+- `/cartes/album` : ta collection, filtrable par rareté, avec ta progression.
+- Chaque carte est un jeu populaire (RAWG + IGDB) : les 5 plus populaires sont Mythiques, puis Légendaires (15), Épiques (30), Rares (60), le reste Communes.
+- Chances par carte (`src/lib/cards.ts`) : Commune 88,96 %, Rare 9,7 %, Épique 1 %, Légendaire 0,32 %, Mythique 0,02 %.
+- Vitraux numérotés : environ 1 pack sur 500, à la place d'une carte, dans la limite de 300 exemplaires.
+  Pour l'instant le stock est compté dans ton navigateur ; il sera partagé entre joueurs avec les comptes en ligne (étape 4).
