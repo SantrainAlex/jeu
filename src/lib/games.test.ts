@@ -77,6 +77,39 @@ describe("getNewGames", () => {
   });
 });
 
+describe("Switch 2", () => {
+  // RAWG et IGDB renvoient l'identifiant de la console quand on le leur demande par son nom
+  function switch2Fetch(rawgKnowsIt: boolean) {
+    return async (url: string, init?: RequestInit) => {
+      if (url.includes("api.rawg.io/api/platforms")) {
+        const results = [{ id: 7, name: "Nintendo Switch" }, ...(rawgKnowsIt ? [{ id: 999, name: "Nintendo Switch 2" }] : [])];
+        return new Response(JSON.stringify({ results }));
+      }
+      if (url.includes("api.igdb.com/v4/platforms")) return new Response(JSON.stringify([{ id: 508 }]));
+      return defaultFetch(url, init);
+    };
+  }
+
+  it("utilise les identifiants trouvés par nom dans RAWG et IGDB", async () => {
+    fetchMock.mockImplementation(switch2Fetch(true));
+    const { getNewGames } = await import("./games");
+    const result = await getNewGames(getPlatform("switch-2")!, "semaine");
+    expect(result.sources).toEqual(["rawg", "igdb"]);
+    const rawgCall = fetchMock.mock.calls.find(([u]) => String(u).includes("api.rawg.io/api/games"))!;
+    expect(String(rawgCall[0])).toContain("platforms=999");
+    const igdbCall = fetchMock.mock.calls.find(([u]) => String(u).includes("api.igdb.com/v4/games"))!;
+    expect(String(igdbCall[1]?.body)).toContain("platforms = (508)");
+  });
+
+  it("n'affiche pas tous les jeux RAWG si RAWG ne connaît pas encore la Switch 2", async () => {
+    fetchMock.mockImplementation(switch2Fetch(false));
+    const { getNewGames } = await import("./games");
+    const result = await getNewGames(getPlatform("switch-2")!, "semaine");
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes("api.rawg.io/api/games"))).toBe(false);
+    expect(result.games.map((g) => g.name)).toEqual(["Mario Kart World™", "Igdb Only"]);
+  });
+});
+
 describe("getCatalog", () => {
   it("cherche sur les deux sources et fusionne les doublons", async () => {
     const { getCatalog } = await import("./games");
