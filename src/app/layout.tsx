@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AccountLink } from "@/components/AccountLink";
+import { CloudStarter } from "@/components/CloudStarter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,6 +13,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr">
       <body>
+        <CloudStarter />
         <header className="site-header">
           <Link href="/" className="logo">🎮 Jeu</Link>
           <nav>
@@ -19,6 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Link href="/mes-notes">Mes notes</Link>
             <Link href="/cartes">Cartes</Link>
             <Link href="/profil">Mon profil</Link>
+            <AccountLink />
           </nav>
         </header>
         <main className="container">{children}</main>

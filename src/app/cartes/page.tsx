@@ -13,6 +13,7 @@ import {
   type Card,
   type PulledCard,
 } from "@/lib/cards";
+import { cloudEnabled, getVitrailStock, getVitrailsLeft, useCloud } from "@/lib/cloud";
 import { openBooster, useStore } from "@/lib/store";
 
 const pct = (x: number) =>
@@ -26,6 +27,8 @@ export default function CardsPage() {
   const [error, setError] = useState(false);
   const [pulled, setPulled] = useState<PulledCard[] | null>(null);
   const [revealed, setRevealed] = useState<number>(0);
+  const cloud = useCloud();
+  const [onlineLeft, setOnlineLeft] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/cartes")
@@ -34,17 +37,28 @@ export default function CardsPage() {
       .catch(() => setError(true));
   }, []);
 
+  // avec les comptes, le stock de vitraux est partagé entre tous les joueurs
+  useEffect(() => {
+    if (cloudEnabled) getVitrailsLeft().then(setOnlineLeft);
+  }, [cloud.status]);
+
   const ratingsCount = Object.keys(ratings).length;
   const packs = availablePacks(collection, ratingsCount);
   const nextBonusIn = RATINGS_PER_BONUS - (ratingsCount % RATINGS_PER_BONUS);
-  const vitrailsLeft = Math.max(0, VITRAIL_TOTAL - collection.vitrailsGiven);
+  const vitrailsLeft = cloudEnabled ? (onlineLeft ?? VITRAIL_TOTAL) : Math.max(0, VITRAIL_TOTAL - collection.vitrailsGiven);
+  const signedOutWithAccounts = cloudEnabled && cloud.status !== "signedIn";
 
-  const open = () => {
+  const open = async () => {
     if (!pool) return;
-    const cards = openBooster(pool.cards);
+    // connecté : stock en ligne partagé ; comptes activés mais pas connecté : pas de vitrail possible
+    const stock = cloudEnabled
+      ? ((await getVitrailStock()) ?? { left: 0, claim: async () => null })
+      : undefined;
+    const cards = await openBooster(pool.cards, stock);
     if (cards) {
       setPulled(cards);
       setRevealed(0);
+      if (cards.some((c) => c.vitrail)) getVitrailsLeft().then(setOnlineLeft);
     }
   };
 
@@ -152,7 +166,14 @@ export default function CardsPage() {
         </table>
         <p className="vitrail-note">
           <strong>Vitraux numérotés</strong> : environ 1 pack sur {Math.round(1 / VITRAIL_CHANCE)} en contient un, à la place
-          d&apos;une carte, tant qu&apos;il en reste ({vitrailsLeft.toLocaleString("fr-FR")} exemplaires encore à distribuer).
+          d&apos;une carte, tant qu&apos;il en reste ({vitrailsLeft.toLocaleString("fr-FR")} exemplaires encore à distribuer
+          {cloudEnabled ? " entre tous les joueurs" : ""}).
+          {signedOutWithAccounts && (
+            <>
+              {" "}
+              <Link href="/connexion">Connecte-toi</Link> pour pouvoir en gagner un.
+            </>
+          )}
         </p>
       </section>
     </>
