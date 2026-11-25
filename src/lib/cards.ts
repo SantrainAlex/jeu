@@ -76,7 +76,8 @@ export function rarityForRank(rank: number): Rarity {
   return "commune";
 }
 
-export type PulledCard = Card & { vitrail?: number };
+/** Carte sortie d'un booster ; `isNew` = tu ne l'avais pas encore. */
+export type PulledCard = Card & { vitrail?: number; isNew?: boolean };
 
 /**
  * Ouvre un booster : 5 cartes tirées au hasard selon les chances.

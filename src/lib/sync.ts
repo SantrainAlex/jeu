@@ -6,8 +6,9 @@ const latestDay = (a: string | null, b: string | null) => (!a ? b : !b ? a : a >
  * Fusionne les données de ce navigateur avec celles du compte, sans rien perdre :
  * - notes : on garde tout, et la plus récente si un jeu est noté des deux côtés ;
  * - plateformes : réunion des deux listes ;
- * - cartes : le plus grand nombre d'exemplaires de chaque carte (pas la somme, pour ne pas compter deux fois
- *   une collection déjà envoyée), tous les vitraux, et les compteurs de boosters les plus avancés.
+ * - cartes : le plus grand nombre d'exemplaires reçus et utilisés de chaque carte (pas la somme, pour ne pas compter
+ *   deux fois une collection déjà envoyée), la meilleure finition, tous les vitraux, et les compteurs les plus avancés
+ *   (boosters, pièces gagnées et dépensées).
  */
 export function mergeData(local: Data, cloud: Data): Data {
   const ratings = { ...cloud.ratings };
@@ -20,12 +21,17 @@ export function mergeData(local: Data, cloud: Data): Data {
   for (const [id, entry] of Object.entries(local.collection.cards)) {
     const other = cards[id];
     if (!other) cards[id] = entry;
-    else
+    else {
+      const used = Math.max(other.used ?? 0, entry.used ?? 0);
+      const finish = other.finish === "or" || entry.finish === "or" ? "or" : (other.finish ?? entry.finish);
       cards[id] = {
         card: other.card,
         count: Math.max(other.count, entry.count),
         firstAt: other.firstAt < entry.firstAt ? other.firstAt : entry.firstAt,
+        ...(used ? { used } : {}),
+        ...(finish ? { finish } : {}),
       };
+    }
   }
 
   const vitraux = [...cloud.collection.vitraux];
@@ -48,6 +54,8 @@ export function mergeData(local: Data, cloud: Data): Data {
       bonusClaimed: Math.max(local.collection.bonusClaimed, cloud.collection.bonusClaimed),
       packsOpened: Math.max(local.collection.packsOpened, cloud.collection.packsOpened),
       vitrailsGiven: Math.max(local.collection.vitrailsGiven, cloud.collection.vitrailsGiven),
+      coinsEarned: Math.max(local.collection.coinsEarned, cloud.collection.coinsEarned),
+      coinsSpent: Math.max(local.collection.coinsSpent, cloud.collection.coinsSpent),
     },
   };
 }

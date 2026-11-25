@@ -244,12 +244,12 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 /* ---------- Recherche, pages, chargement ---------- */
 
 .search { display: flex; gap: 0.5rem; margin: 1rem 0; max-width: 560px; }
-.search input {
+.search input, .search-input {
   flex: 1; min-width: 0; padding: 0.65rem 1rem; border-radius: 999px; border: 1px solid var(--line-strong);
   background: var(--surface); color: var(--text); font-size: 1rem; font-family: inherit;
   transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
-.search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.search input:focus, .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 .search button {
   padding: 0.6rem 1.15rem; border-radius: 999px; border: none; background: var(--primary);
   color: #fff; font-weight: 600; cursor: pointer; font-family: var(--font-display), sans-serif; font-size: 0.95rem;
@@ -456,6 +456,92 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
   mask: repeating-linear-gradient(60deg, #000 0 14px, transparent 14px 16px), repeating-linear-gradient(-60deg, #000 0 14px, transparent 14px 16px);
 }
 .vitrail .tcard-rarity { color: var(--gold); }
+
+/* Badge « Nouvelle ! » / « Doublon » à l'ouverture d'un booster */
+.tcard-badge {
+  position: absolute; top: 0.55rem; left: 0.55rem; z-index: 3; padding: 0.12rem 0.5rem; border-radius: 999px;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  animation: pop 0.45s var(--ease) both;
+}
+.tcard-badge.new { background: #4ade80; color: #04210f; box-shadow: 0 0 14px rgba(74, 222, 128, 0.6); }
+.tcard-badge.dup { background: rgba(0, 0, 0, 0.75); color: var(--text-dim); border: 1px solid var(--line-strong); }
+@keyframes pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
+
+/* Finitions argent et or */
+.finish-argent .tcard-front {
+  border-color: #d7dde8;
+  background: linear-gradient(160deg, #2a2f3a, #111318 45%, #2a2f3a);
+  box-shadow: 0 0 22px rgba(215, 221, 232, 0.45), 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+.finish-or .tcard-front {
+  border-color: var(--gold);
+  background: linear-gradient(160deg, #3d3010, #111318 45%, #3d3010);
+  box-shadow: 0 0 28px rgba(245, 200, 75, 0.6), 0 10px 26px rgba(0, 0, 0, 0.45);
+}
+.finish-argent .tcard-holo, .finish-or .tcard-holo {
+  opacity: calc(0.2 + var(--glare) * 0.45); mix-blend-mode: overlay;
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.55) 45%, transparent 60%);
+  background-size: 250% 250%; background-position: var(--mx) var(--my);
+}
+.finish-or .tcard-holo { background-image: linear-gradient(115deg, transparent 20%, rgba(255, 220, 120, 0.7) 45%, transparent 60%); }
+.tcard-finish { color: #d7dde8; }
+.finish-or .tcard-finish { color: var(--gold); }
+.silver { color: #d7dde8; }
+.gold-text { color: var(--gold); }
+
+/* ---------- Atelier ---------- */
+
+.pack-summary { font-size: 0.9rem; }
+.sort-select { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: auto; font-size: 0.85rem; }
+.sort-select select {
+  background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 0.35rem 0.8rem; font: inherit;
+}
+.wallet {
+  display: inline-flex; align-items: center; gap: 0.5rem; margin: 1rem 0 0.5rem; padding: 0.5rem 1rem;
+  border-radius: 999px; background: var(--surface); border: 1px solid var(--line-strong); font-size: 1.05rem;
+}
+.wallet strong { color: var(--gold); font-size: 1.2rem; }
+.coin {
+  width: 18px; height: 18px; border-radius: 50%; display: inline-block;
+  background: radial-gradient(circle at 35% 35%, #fff3c4, var(--gold) 45%, #a8791a);
+  box-shadow: 0 0 10px rgba(245, 200, 75, 0.5);
+}
+.panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: calc(var(--radius) + 4px);
+  padding: 1.5rem; margin: 1.25rem 0;
+}
+.panel h2 { margin-top: 0; }
+.panel > .button, .row-actions { margin-top: 1rem; }
+.row-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.workshop-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.95rem; }
+.workshop-table th { text-align: left; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0.4rem 0.5rem; }
+.workshop-table td { padding: 0.55rem 0.5rem; border-top: 1px solid var(--line); }
+.workshop-table .num { text-align: right; }
+.workshop-table .mono { color: var(--muted); }
+.workshop-table .strong { color: var(--gold); }
+.trade-list { display: grid; gap: 0.5rem; margin-top: 1rem; }
+.trade-row {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 1rem;
+  padding: 0.6rem 0.75rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2);
+}
+.gift { width: 180px; margin-top: 1.25rem; }
+.craft-list { list-style: none; display: grid; gap: 0.4rem; margin-top: 0.5rem; }
+.craft-list li {
+  display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 0.75rem;
+  padding: 0.5rem 0.75rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2);
+}
+.craft-name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upgrade-item { display: grid; gap: 0.6rem; }
+.upgrade-item .button { font-size: 0.85rem; padding: 0.5rem 0.75rem; }
+@media (max-width: 560px) {
+  .craft-list li { grid-template-columns: auto 1fr auto; }
+  .craft-list li .small { display: none; }
+  .trade-row { grid-template-columns: 1fr auto; }
+  .trade-row .button { grid-column: 1 / -1; }
+  .sort-select { margin-left: 0; }
+  .panel { padding: 1.1rem; }
+}
 
 /* ---------- Tableau des chances ---------- */
 

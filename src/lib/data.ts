@@ -22,9 +22,22 @@ export type Rating = {
   ratedAt: string;
 };
 
+/** Finition d'une carte, débloquée à l'atelier avec des doublons. */
+export type Finish = "argent" | "or";
+
+export type OwnedCard = {
+  card: Card;
+  /** nombre total d'exemplaires reçus (boosters, fabrication, échanges) */
+  count: number;
+  firstAt: string;
+  /** exemplaires utilisés à l'atelier (recyclage, échange de rareté, finitions) */
+  used?: number;
+  finish?: Finish;
+};
+
 export type Collection = {
   /** cartes possédées : identifiant du jeu → carte et nombre d'exemplaires */
-  cards: Record<string, { card: Card; count: number; firstAt: string }>;
+  cards: Record<string, OwnedCard>;
   /** vitraux numérotés obtenus */
   vitraux: { card: Card; number: number; at: string }[];
   /** dernier jour où le booster gratuit a été ouvert */
@@ -34,6 +47,9 @@ export type Collection = {
   packsOpened: number;
   /** vitraux distribués sur ce navigateur quand on n'est pas connecté (le stock en ligne est partagé) */
   vitrailsGiven: number;
+  /** pièces gagnées en recyclant des doublons, et pièces dépensées à l'atelier (solde = gagnées - dépensées) */
+  coinsEarned: number;
+  coinsSpent: number;
 };
 
 export type Data = { profile: Profile; ratings: Record<string, Rating>; collection: Collection };
@@ -45,6 +61,8 @@ export const EMPTY_COLLECTION: Collection = {
   bonusClaimed: 0,
   packsOpened: 0,
   vitrailsGiven: 0,
+  coinsEarned: 0,
+  coinsSpent: 0,
 };
 
 export const EMPTY: Data = { profile: { owned: [], interested: [] }, ratings: {}, collection: EMPTY_COLLECTION };
@@ -67,3 +85,9 @@ export function isEmpty(d: Data) {
     d.collection.packsOpened === 0
   );
 }
+
+/** Nombre d'exemplaires que tu as encore en main. */
+export const copies = (o: OwnedCard) => o.count - (o.used ?? 0);
+
+/** Ton solde de pièces. */
+export const coins = (c: Collection) => c.coinsEarned - c.coinsSpent;
