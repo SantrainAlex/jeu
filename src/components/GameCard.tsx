@@ -1,6 +1,7 @@
 import type { Game } from "@/lib/rawg";
+import { RatingStars } from "./RatingStars";
 
-export function GameCard({ game }: { game: Game }) {
+export function GameCard({ game, extra }: { game: Game; extra?: React.ReactNode }) {
   const date = game.released
     ? new Date(game.released).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
     : "Date inconnue";
@@ -19,10 +20,12 @@ export function GameCard({ game }: { game: Game }) {
         <p className="muted">Sortie le {date}</p>
         <div className="tags">
           {game.genres.slice(0, 3).map((g) => (
-            <span key={g} className="tag">{g}</span>
+            <span key={g.slug} className="tag">{g.name}</span>
           ))}
         </div>
-        {game.rating > 0 && <p className="rating">★ {game.rating.toFixed(1)} / 5</p>}
+        {game.rating > 0 && <p className="rating">★ {game.rating.toFixed(1)} / 5 <span className="muted">(RAWG)</span></p>}
+        {extra}
+        <RatingStars game={game} />
       </div>
     </article>
   );

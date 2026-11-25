@@ -72,3 +72,40 @@ code { background: var(--surface-2); padding: 0 .3rem; border-radius: 4px; }
 .tags { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .5rem; }
 .tag { font-size: .75rem; background: var(--surface-2); padding: .1rem .5rem; border-radius: 999px; color: var(--muted); }
 .rating { margin-top: .5rem; color: #ffc94d; font-weight: 600; font-size: .9rem; }
+
+/* ---------- Étape 2 : profil, notes, recommandations ---------- */
+h2 { font-size: 1.2rem; margin: 1.5rem 0 0; }
+.small { font-size: .8rem; margin-top: .5rem; }
+.site-header nav { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+.platform-card .badge {
+  display: block; font-size: .75rem; font-weight: 500; color: var(--accent); margin-top: .2rem;
+}
+.notice a, .muted a, .tastes a { text-decoration: underline; }
+.others { margin-top: 2rem; }
+.others summary { cursor: pointer; color: var(--muted); }
+
+.my-rating { display: flex; align-items: center; gap: .15rem; margin-top: .6rem; font-size: .85rem; }
+.my-rating .muted { margin-right: .35rem; }
+.star {
+  background: none; border: none; cursor: pointer; font-size: 1.25rem; line-height: 1;
+  color: #4a4f5c; padding: 0 .05rem; transition: transform .1s, color .1s;
+}
+.star:hover { transform: scale(1.2); }
+.star.on { color: #ffc94d; }
+.my-rating:hover .star { color: #ffc94d; }
+.my-rating .star:hover ~ .star { color: #4a4f5c; }
+
+.profile-table { width: 100%; max-width: 560px; border-collapse: collapse; margin-top: 1.5rem; }
+.profile-table th, .profile-table td { padding: .7rem .5rem; border-bottom: 1px solid var(--surface-2); text-align: center; }
+.profile-table th:first-child, .profile-table td:first-child { text-align: left; }
+.profile-table th { color: var(--muted); font-weight: 500; font-size: .85rem; }
+.profile-table input { width: 1.2rem; height: 1.2rem; accent-color: var(--primary); cursor: pointer; }
+.dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; margin-right: .4rem; }
+
+.tastes { background: var(--surface); border-radius: var(--radius); padding: 1rem 1.2rem; margin: 1rem 0 1.5rem; }
+.tastes p { margin-bottom: .4rem; }
+.button {
+  display: inline-block; margin-top: .4rem; background: var(--primary); color: #fff;
+  padding: .45rem 1rem; border-radius: 999px; font-weight: 600; text-decoration: none !important;
+}
+.reason { font-size: .8rem; color: #b9a8ff; margin-top: .4rem; }
