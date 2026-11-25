@@ -40,3 +40,14 @@ export function demoCatalog(): Game[] {
     demoGame(500 + i * 11, i, `${WORDS[0][i % 10]} ${WORDS[1][(i + Math.floor(i / 10)) % 10]}`, "2025-06-01"),
   );
 }
+
+export function demoCatalogPage(opts: { query?: string; sort: "populaires" | "notes" | "recents"; page: number; pageSize: number }) {
+  const q = opts.query?.toLowerCase() ?? "";
+  const all = demoCatalog()
+    .map((g, i) => ({ ...g, released: `${2010 + (i % 15)}-0${1 + (i % 9)}-15` }))
+    .filter((g) => g.name.toLowerCase().includes(q));
+  if (opts.sort === "notes") all.sort((a, b) => b.rating - a.rating);
+  if (opts.sort === "recents") all.sort((a, b) => (b.released ?? "").localeCompare(a.released ?? ""));
+  const start = (opts.page - 1) * opts.pageSize;
+  return { games: all.slice(start, start + opts.pageSize), hasMore: start + opts.pageSize < all.length };
+}

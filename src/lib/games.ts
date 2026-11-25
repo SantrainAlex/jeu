@@ -1,11 +1,12 @@
-import { demoCatalog, demoReleases } from "./demo";
-import { hasIgdb, igdbByGenres, igdbReleases } from "./igdb";
+import { demoCatalog, demoCatalogPage, demoReleases } from "./demo";
+import { hasIgdb, igdbByGenres, igdbCatalog, igdbReleases } from "./igdb";
 import { mergeGames } from "./merge";
 import { PERIODS, type Period, type Platform } from "./platforms";
-import { hasRawg, rawgByGenres, rawgReleases } from "./rawg";
+import { hasRawg, rawgByGenres, rawgCatalog, rawgReleases, type CatalogSort } from "./rawg";
 import type { Game, GamesResult, Source } from "./types";
 
 export type { Game, GamesResult, Genre } from "./types";
+export type { CatalogSort } from "./rawg";
 
 function dateRange(period: Period) {
   const to = new Date();
@@ -65,4 +66,29 @@ export async function getCandidates(platforms: Platform[], genreSlugs: string[])
     hasRawg() ? () => rawgByGenres(platforms.flatMap((p) => p.rawgIds), genreSlugs) : null,
     hasIgdb() ? () => igdbByGenres(platforms.flatMap((p) => p.igdbIds), genreSlugs) : null,
   );
+}
+
+export const CATALOG_PAGE_SIZE = 24;
+
+/**
+ * Une page du catalogue d'une plateforme (tous les jeux déjà sortis), pour retrouver et noter ses anciens jeux.
+ * Chaque source renvoie sa page ; les doublons de la page sont fusionnés.
+ */
+export async function getCatalog(
+  platform: Platform,
+  opts: { query?: string; sort: CatalogSort; page: number },
+): Promise<GamesResult & { hasMore: boolean }> {
+  const o = { ...opts, pageSize: CATALOG_PAGE_SIZE };
+  if (!hasRawg() && !hasIgdb()) return { ...demoCatalogPage(o), demo: true, sources: [] };
+
+  let full = false; // au moins une source a renvoyé une page pleine : il y a sans doute une page suivante
+  const track = (games: Game[]) => {
+    if (games.length >= CATALOG_PAGE_SIZE) full = true;
+    return games;
+  };
+  const result = await fromBothSources(
+    hasRawg() ? () => rawgCatalog(platform.rawgIds, o).then(track) : null,
+    hasIgdb() ? () => igdbCatalog(platform.igdbIds, o).then(track) : null,
+  );
+  return { ...result, hasMore: full };
 }

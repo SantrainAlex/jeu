@@ -99,3 +99,24 @@ export function igdbByGenres(platformIds: number[], genreSlugs: string[]) {
       ` & version_parent = null; sort total_rating_count desc; limit 40;`,
   );
 }
+
+/** Une page du catalogue d'une plateforme IGDB (recherche facultative). */
+export function igdbCatalog(
+  platformIds: number[],
+  opts: { query?: string; sort: "populaires" | "notes" | "recents"; page: number; pageSize: number },
+) {
+  const now = Math.floor(Date.now() / 1000);
+  const base = `platforms = (${platformIds.join(",")}) & version_parent = null & first_release_date <= ${now}`;
+  const paging = `limit ${opts.pageSize}; offset ${(opts.page - 1) * opts.pageSize};`;
+  if (opts.query) {
+    // IGDB ne permet pas de trier une recherche : elle est classée par pertinence
+    const q = opts.query.replace(/["\\]/g, " ").trim();
+    return query(`search "${q}"; where ${base}; ${paging}`);
+  }
+  const sort = {
+    populaires: `where ${base} & total_rating_count >= 1; sort total_rating_count desc;`,
+    notes: `where ${base} & total_rating_count >= 20; sort total_rating desc;`,
+    recents: `where ${base}; sort first_release_date desc;`,
+  }[opts.sort];
+  return query(`${sort} ${paging}`);
+}

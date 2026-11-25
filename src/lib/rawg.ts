@@ -48,3 +48,24 @@ export function rawgByGenres(platformIds: number[], genreSlugs: string[]) {
   if (platformIds.length) params.platforms = platformIds.join(",");
   return query(params);
 }
+
+export type CatalogSort = "populaires" | "notes" | "recents";
+
+/** Une page du catalogue d'une plateforme RAWG (recherche facultative). */
+export function rawgCatalog(platformIds: number[], opts: { query?: string; sort: CatalogSort; page: number; pageSize: number }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const ordering = { populaires: "-added", notes: "-metacritic", recents: "-released" }[opts.sort];
+  const params: Record<string, string> = {
+    platforms: platformIds.join(","),
+    page: String(opts.page),
+    page_size: String(opts.pageSize),
+    dates: `1970-01-01,${today}`, // seulement les jeux déjà sortis
+  };
+  if (opts.query) {
+    params.search = opts.query;
+    params.search_precise = "true";
+  } else {
+    params.ordering = ordering;
+  }
+  return query(params);
+}

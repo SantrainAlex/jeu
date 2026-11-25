@@ -110,3 +110,19 @@ h2 { font-size: 1.2rem; margin: 1.5rem 0 0; }
 }
 .reason { font-size: .8rem; color: #b9a8ff; margin-top: .4rem; }
 .sources { font-size: .75rem; color: var(--muted); margin-top: .3rem; }
+
+/* ---------- Catalogue ---------- */
+.search { display: flex; gap: .5rem; margin: 1rem 0; max-width: 560px; }
+.search input {
+  flex: 1; min-width: 0; padding: .6rem .9rem; border-radius: 999px; border: 1px solid var(--surface-2);
+  background: var(--surface); color: var(--text); font-size: 1rem;
+}
+.search button {
+  padding: .6rem 1.1rem; border-radius: 999px; border: none; background: var(--primary);
+  color: #fff; font-weight: 600; cursor: pointer;
+}
+.sorts { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.chip { font-size: .85rem; padding: .3rem .8rem; border-radius: 999px; border: 1px solid var(--surface-2); color: var(--muted); }
+.chip.active { border-color: var(--primary); color: var(--text); }
+.pager { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; }
+.pager a { background: var(--surface); padding: .5rem 1rem; border-radius: 999px; }

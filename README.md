@@ -48,3 +48,8 @@ Tests : `npm test`.
 Calcul des goûts : 5★ = +2, 4★ = +1, 3★ = 0, 2★ = -1, 1★ = -2 pour chaque genre du jeu noté.
 Pour l'instant, le profil et les notes sont enregistrés dans ton navigateur (`src/lib/store.ts`) ;
 on passera à de vrais comptes en ligne quand le site sera ouvert à tes amis.
+
+## Catalogue de chaque plateforme
+
+`/plateforme/<plateforme>/catalogue` (onglet « 📚 Catalogue ») : tous les jeux déjà sortis, avec recherche par nom,
+tri (populaires, mieux notés, plus récents) et pages de 24 jeux. Pratique pour retrouver et noter tes anciens jeux.

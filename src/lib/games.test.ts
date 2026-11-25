@@ -74,3 +74,20 @@ describe("getNewGames", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("getCatalog", () => {
+  it("cherche sur les deux sources et fusionne les doublons", async () => {
+    const { getCatalog } = await import("./games");
+    const result = await getCatalog(getPlatform("switch")!, { query: 'Mario "Kart"', sort: "populaires", page: 2 });
+
+    expect(result.games.map((g) => g.name)).toEqual(["Mario Kart World", "Rawg Only", "Igdb Only"]);
+    expect(result.hasMore).toBe(false);
+
+    const rawgUrl = String(fetchMock.mock.calls.find(([u]) => String(u).includes("rawg.io"))![0]);
+    expect(rawgUrl).toContain("search=Mario");
+    expect(rawgUrl).toContain("page=2");
+    const igdbBody = String(fetchMock.mock.calls.find(([u]) => String(u).includes("api.igdb.com"))![1]?.body);
+    expect(igdbBody).toContain('search "Mario  Kart";');
+    expect(igdbBody).toContain("offset 24;");
+  });
+});
