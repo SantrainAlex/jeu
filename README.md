@@ -13,18 +13,27 @@ avec les sorties du jour, de la semaine et du mois.
    ```
 3. Ouvre http://localhost:3000
 
-## Avoir les vrais jeux
+## Avoir les vrais jeux (RAWG + IGDB)
 
-Sans clé, le site affiche des jeux d'exemple. Pour les vraies sorties :
+Sans clé, le site affiche des jeux d'exemple. Le site sait utiliser deux sources, ensemble ou séparément :
 
-1. Crée un compte gratuit sur https://rawg.io/apidocs et récupère ta clé API.
-2. Copie `.env.example` en `.env.local` et colle ta clé après `RAWG_API_KEY=`.
-3. Relance `npm run dev`.
+- **RAWG** : crée une clé gratuite sur https://rawg.io/apidocs.
+- **IGDB** : connecte-toi sur https://dev.twitch.tv/console, « Register Your Application »
+  (URL de redirection `http://localhost`, catégorie « Website Integration »), puis note le Client ID et génère un Client Secret.
+
+Copie `.env.example` en `.env.local`, remplis ce que tu as, puis relance `npm run dev`.
+
+Quand les deux sources sont configurées, les listes sont fusionnées **sans doublon** (`src/lib/merge.ts`) :
+deux fiches sont le même jeu si leur titre est identique une fois simplifié (majuscules, accents, ponctuation et
+mentions comme « Deluxe Edition » ignorées) et que leurs années de sortie ont au plus un an d'écart.
+Les infos sont alors combinées (image, genres, note moyenne). Si une source est en panne, l'autre s'affiche quand même.
+
+Tests : `npm test`.
 
 ## Organisation du code
 
 - `src/lib/platforms.ts` : la liste des plateformes et des périodes (pour en ajouter une, c'est ici).
-- `src/lib/rawg.ts` : la récupération des jeux depuis RAWG (avec mise en cache 1 h) et les données d'exemple.
+- `src/lib/games.ts` : interroge RAWG (`rawg.ts`) et IGDB (`igdb.ts`), puis fusionne (`merge.ts`) ; jeux d'exemple dans `demo.ts`.
 - `src/app/page.tsx` : la page d'accueil (choix de la plateforme).
 - `src/app/plateforme/[slug]/page.tsx` : la page d'une plateforme avec les onglets jour / semaine / mois.
 - `src/components/GameCard.tsx` : la carte d'un jeu.

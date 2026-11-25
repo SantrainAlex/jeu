@@ -1,7 +1,7 @@
 "use client";
 
 import { rateGame, removeRating, useStore } from "@/lib/store";
-import type { Game } from "@/lib/rawg";
+import type { Game } from "@/lib/types";
 
 export function RatingStars({ game }: { game: Game }) {
   const [{ ratings }, ready] = useStore();

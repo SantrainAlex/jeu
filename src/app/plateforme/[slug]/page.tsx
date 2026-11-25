@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GameCard } from "@/components/GameCard";
 import { PERIODS, getPlatform, parsePeriod, type Period } from "@/lib/platforms";
-import { getNewGames } from "@/lib/rawg";
+import { getNewGames } from "@/lib/games";
 
 // La page dépend de la période choisie (?periode=...), elle est donc générée à la demande.
 export const dynamic = "force-dynamic";
@@ -48,8 +48,8 @@ export default async function PlatformPage({
 
       {demo && (
         <p className="notice">
-          Ce sont des jeux d&apos;exemple. Ajoute ta clé RAWG dans le fichier <code>.env.local</code> pour
-          voir les vraies sorties.
+          Ce sont des jeux d&apos;exemple. Ajoute ta clé RAWG et/ou tes identifiants IGDB dans le fichier{" "}
+          <code>.env.local</code> pour voir les vraies sorties.
         </p>
       )}
 
