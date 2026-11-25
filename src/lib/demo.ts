@@ -52,10 +52,12 @@ export function demoCatalogPage(opts: { query?: string; sort: "populaires" | "no
   return { games: all.slice(start, start + opts.pageSize), hasMore: start + opts.pageSize < all.length };
 }
 
-/** 200 jeux d'exemple aux noms tous différents, pour les cartes. */
+const SEQUELS = ["", " II", " III", " IV", " V", " VI", " VII", " VIII", " IX", " X"];
+
+/** 1 000 jeux d'exemple aux noms tous différents, pour les cartes (100 noms x 10 épisodes). */
 export function demoCardGames(): Game[] {
-  return Array.from({ length: 200 }, (_, i) => {
+  return Array.from({ length: 1000 }, (_, i) => {
     const base = `${WORDS[0][i % 10]} ${WORDS[1][Math.floor(i / 10) % 10]}`;
-    return demoGame(700 + i * 7, i, i >= 100 ? `${base} II` : base, `${2005 + (i % 20)}-05-10`);
+    return demoGame(700 + i * 7, i, base + SEQUELS[Math.floor(i / 100)], `${2005 + (i % 20)}-05-10`);
   });
 }

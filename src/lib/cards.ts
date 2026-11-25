@@ -62,12 +62,18 @@ export type Card = {
   released: string | null;
 };
 
-/** Seuils de rareté selon le classement de popularité du jeu (1 = le plus populaire). */
+/** Nombre de cartes dans la collection : les N jeux les plus populaires (RAWG + IGDB, sans doublons). */
+export const CARD_POOL_SIZE = 1000;
+
+/**
+ * Seuils de rareté selon le classement de popularité du jeu (1 = le plus populaire).
+ * Sur 1 000 cartes : 20 Mythiques, 60 Légendaires, 120 Épiques, 240 Rares, le reste (560) Communes.
+ */
 const RANK_TIERS: [number, Rarity][] = [
-  [5, "mythique"],
-  [20, "legendaire"],
-  [50, "epique"],
-  [110, "rare"],
+  [20, "mythique"],
+  [80, "legendaire"],
+  [200, "epique"],
+  [440, "rare"],
 ];
 
 /** Les jeux les plus populaires deviennent les cartes les plus rares. */

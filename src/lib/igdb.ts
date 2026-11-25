@@ -124,6 +124,6 @@ export function igdbCatalog(
 /** Les jeux les plus populaires toutes plateformes confondues (pour les cartes à collectionner). */
 export function igdbPopular(offset: number) {
   return query(
-    `where version_parent = null & total_rating_count >= 50; sort total_rating_count desc; limit 50; offset ${offset};`,
+    `where version_parent = null & total_rating_count >= 20; sort total_rating_count desc; limit 500; offset ${offset};`,
   );
 }
