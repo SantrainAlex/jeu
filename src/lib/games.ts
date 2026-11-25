@@ -1,5 +1,5 @@
 import { combineDetails, parseGameKey, type GameDetails } from "./details";
-import { demoCatalog, demoCatalogPage, demoDetails, demoReleases } from "./demo";
+import { demoCandidates, demoCatalogPage, demoDetails, demoReleases } from "./demo";
 import { hasIgdb, igdbByGenres, igdbCatalog, igdbDetails, igdbFind, igdbPlatformId, igdbReleases } from "./igdb";
 import { mergeGames } from "./merge";
 import { PERIODS, type Period, type Platform } from "./platforms";
@@ -111,19 +111,43 @@ export async function getNewGames(platform: Platform, period: Period): Promise<G
   );
 }
 
-/** Jeux candidats pour les recommandations : les mieux notés des genres aimés, sur tes plateformes. */
+/**
+ * Jeux candidats pour les recommandations : les mieux notés des genres aimés, sur TES plateformes uniquement.
+ * Chaque plateforme est cherchée séparément, et chaque jeu reçoit la liste des plateformes où on l'a trouvé
+ * (`platforms`). Sans plateforme, on ne renvoie rien : on ne propose jamais un jeu « toutes plateformes ».
+ */
 export async function getCandidates(platforms: Platform[], genreSlugs: string[]): Promise<GamesResult> {
+  if (platforms.length === 0) return { games: [], demo: !hasRawg() && !hasIgdb(), sources: [] };
   if (!hasRawg() && !hasIgdb()) {
     return {
-      games: demoCatalog().filter((g) => g.genres.some((x) => genreSlugs.includes(x.slug))),
+      games: demoCandidates(
+        platforms.map((p) => p.slug),
+        genreSlugs,
+      ),
       demo: true,
       sources: [],
     };
   }
-  return fromBothSources(
-    hasRawg() ? () => onPlatforms("rawg", platforms, (ids) => rawgByGenres(ids, genreSlugs)) : null,
-    hasIgdb() ? () => onPlatforms("igdb", platforms, (ids) => igdbByGenres(ids, genreSlugs)) : null,
+  const perPlatform = await Promise.allSettled(
+    platforms.map((p) =>
+      fromBothSources(
+        hasRawg() ? () => onPlatforms("rawg", [p], (ids) => rawgByGenres(ids, genreSlugs)) : null,
+        hasIgdb() ? () => onPlatforms("igdb", [p], (ids) => igdbByGenres(ids, genreSlugs)) : null,
+      ).then((r) => ({ ...r, games: tagPlatform(r.games, p.slug) })),
+    ),
   );
+  const ok = perPlatform.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+  if (ok.length === 0) throw new Error("Aucune source de jeux ne répond pour le moment.");
+  return {
+    games: mergeGames(...ok.map((r) => r.games)),
+    sources: [...new Set(ok.flatMap((r) => r.sources))],
+    demo: false,
+  };
+}
+
+/** Indique sur chaque jeu la plateforme sur laquelle on l'a trouvé. */
+export function tagPlatform(games: Game[], slug: string): Game[] {
+  return games.map((g) => ({ ...g, platforms: [slug] }));
 }
 
 export const CATALOG_PAGE_SIZE = 24;

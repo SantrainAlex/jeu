@@ -36,6 +36,7 @@ function combine(a: Game, b: Game): Game {
   const genres = [...a.genres];
   for (const g of b.genres) if (!genres.some((x) => x.slug === g.slug)) genres.push(g);
   const ratings = [a.rating, b.rating].filter((r) => r > 0);
+  const platforms = [...new Set([...(a.platforms ?? []), ...(b.platforms ?? [])])];
   const dates = [a.released, b.released].filter((d): d is string => Boolean(d)).sort();
   return {
     // on garde l'identifiant RAWG (positif) en priorité pour que les notes restent attachées au même jeu
@@ -47,6 +48,7 @@ function combine(a: Game, b: Game): Game {
     rating: ratings.length ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10 : 0,
     genres,
     sources: [...new Set([...a.sources, ...b.sources])],
+    ...(platforms.length ? { platforms } : {}),
   };
 }
 

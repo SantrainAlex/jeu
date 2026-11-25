@@ -14,6 +14,11 @@ export type Game = {
   genres: Genre[];
   /** d'où viennent les infos de ce jeu */
   sources: Source[];
+  /**
+   * Plateformes du site (slugs de platforms.ts) sur lesquelles on a trouvé le jeu.
+   * Rempli seulement pour les recommandations, où chaque plateforme est cherchée séparément.
+   */
+  platforms?: string[];
 };
 
 export type GamesResult = {

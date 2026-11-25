@@ -144,3 +144,48 @@ describe("sources lentes", () => {
     vi.useRealTimers();
   });
 });
+
+describe("getCandidates (Pour toi)", () => {
+  it("ne cherche que sur tes plateformes, une par une, et note où chaque jeu a été trouvé", async () => {
+    const { getCandidates } = await import("./games");
+    const result = await getCandidates([getPlatform("switch")!, getPlatform("pc")!], ["racing"]);
+    const rawgCalls = fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.includes("api.rawg.io/api/games"));
+    expect(rawgCalls.some((u) => u.includes("platforms=7&") || u.endsWith("platforms=7"))).toBe(true);
+    expect(rawgCalls.some((u) => u.includes("platforms=4&") || u.endsWith("platforms=4"))).toBe(true);
+    expect(rawgCalls.every((u) => u.includes("platforms="))).toBe(true);
+    const igdbBodies = fetchMock.mock.calls.filter(([u]) => String(u).includes("api.igdb.com/v4/games")).map(([, i]) => String(i?.body));
+    expect(igdbBodies.every((b) => b.includes("platforms = ("))).toBe(true);
+    const mario = result.games.find((g) => g.name === "Mario Kart World")!;
+    expect(mario.platforms?.sort()).toEqual(["pc", "switch"]);
+  });
+
+  it("ne renvoie rien sans plateforme (jamais « toutes plateformes »)", async () => {
+    const { getCandidates } = await import("./games");
+    const result = await getCandidates([], ["racing"]);
+    expect(result.games).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("Switch 2 seule : rien de RAWG s'il ne connaît pas la console, et tout est marqué Switch 2", async () => {
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.includes("api.rawg.io/api/platforms")) return new Response(JSON.stringify({ results: [{ id: 7, name: "Nintendo Switch" }] }));
+      if (url.includes("api.igdb.com/v4/platforms")) return new Response(JSON.stringify([{ id: 508 }]));
+      return defaultFetch(url, init);
+    });
+    const { getCandidates } = await import("./games");
+    const result = await getCandidates([getPlatform("switch-2")!], ["racing"]);
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes("api.rawg.io/api/games"))).toBe(false);
+    expect(result.games.length).toBeGreaterThan(0);
+    expect(result.games.every((g) => g.platforms?.join() === "switch-2")).toBe(true);
+  });
+
+  it("jeux d'exemple : chacun est sur au moins une des plateformes demandées", async () => {
+    vi.stubEnv("RAWG_API_KEY", "");
+    vi.stubEnv("IGDB_CLIENT_ID", "");
+    const { getCandidates } = await import("./games");
+    const result = await getCandidates([getPlatform("switch-2")!, getPlatform("ps5")!], ["action"]);
+    expect(result.demo).toBe(true);
+    expect(result.games.length).toBeGreaterThan(0);
+    expect(result.games.every((g) => g.platforms!.length > 0 && g.platforms!.every((p) => ["switch-2", "ps5"].includes(p)))).toBe(true);
+  });
+});
