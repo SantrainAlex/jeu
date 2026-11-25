@@ -795,6 +795,33 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
   .tabs { width: 100%; }
 }
 
+/* ---------- Bannière « Installer l'application » (téléphone) ---------- */
+
+.install-banner {
+  position: fixed; left: 0.75rem; right: 0.75rem; z-index: 60;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 0.75rem);
+  max-width: 480px; margin: 0 auto;
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.7rem 0.6rem 0.7rem 0.75rem;
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid var(--line-strong); border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: install-in 0.4s var(--ease);
+}
+.install-icon { width: 44px; height: 44px; border-radius: 11px; flex: none; }
+.install-text { display: grid; gap: 0.1rem; flex: 1; min-width: 0; font-size: 0.82rem; line-height: 1.35; color: var(--text-dim); }
+.install-text strong { font-family: var(--font-display), system-ui, sans-serif; font-size: 0.95rem; color: var(--text); }
+.install-text b { color: var(--text); font-weight: 600; }
+.install-inline-icon { display: inline-block; vertical-align: -3px; color: var(--primary); }
+.install-cta { padding: 0.45rem 0.9rem; font-size: 0.88rem; flex: none; }
+.install-close {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px;
+  background: transparent; border: none; color: var(--muted); cursor: pointer;
+}
+.install-close:hover { color: var(--text); background: var(--surface-3); }
+@keyframes install-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
