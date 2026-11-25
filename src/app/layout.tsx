@@ -22,7 +22,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </header>
         <main className="container">{children}</main>
         <footer className="site-footer">
-          Données des jeux fournies par <a href="https://rawg.io" target="_blank" rel="noreferrer">RAWG</a>.
+          Données des jeux fournies par <a href="https://rawg.io" target="_blank" rel="noreferrer">RAWG</a> et{" "}
+          <a href="https://www.igdb.com" target="_blank" rel="noreferrer">IGDB</a>.
         </footer>
       </body>
     </html>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { GameCard } from "@/components/GameCard";
-import type { Game } from "@/lib/rawg";
+import type { Game } from "@/lib/types";
 import { computeTastes, rankGames } from "@/lib/reco";
 import { useStore } from "@/lib/store";
 
@@ -58,7 +58,7 @@ export default function RecommendationsPage() {
             {platforms.length > 0 ? " · sur tes plateformes" : " · toutes plateformes (choisis les tiennes dans ton profil)"}
           </p>
           {state.demo && (
-            <p className="notice">Ce sont des jeux d&apos;exemple : ajoute ta clé RAWG pour de vraies recommandations.</p>
+            <p className="notice">Ce sont des jeux d&apos;exemple : ajoute ta clé RAWG et/ou IGDB pour de vraies recommandations.</p>
           )}
           {state.status === "loading" && <p className="muted">Recherche de jeux pour toi…</p>}
           {state.status === "error" && <p className="notice">Impossible de charger les recommandations pour le moment.</p>}
