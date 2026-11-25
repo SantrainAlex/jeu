@@ -146,6 +146,17 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .chip:hover { border-color: var(--line-strong); color: var(--text); }
 .chip.active { border-color: var(--primary-line); background: var(--primary-soft); color: var(--text); }
 
+/* ---------- Filtres de la page « Pour toi » ---------- */
+.reco-filters { display: grid; gap: 0.55rem; margin: 1rem 0 1.5rem; padding: 0.85rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.filter-row { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+.filter-label { flex: none; width: 4.5rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 600; }
+.filter-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; min-width: 0; }
+.chip-count { font-size: 0.72rem; padding: 0 0.4rem; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); }
+.chip.active .chip-count { background: var(--primary); color: #fff; }
+.platform-tag { display: inline-flex; align-items: center; }
+.platform-tag .dot { width: 0.45rem; height: 0.45rem; margin-right: 0.3rem; }
+.platform-tag.owned { color: var(--text); border-color: var(--line-strong); }
+
 .tag { font-size: 0.72rem; background: var(--surface-2); border: 1px solid var(--line); padding: 0.05rem 0.5rem; border-radius: 999px; color: var(--text-dim); }
 .tags { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-top: 0.5rem; }
 .dot { display: inline-block; width: 0.55rem; height: 0.55rem; border-radius: 50%; margin-right: 0.35rem; flex: none; }
@@ -833,6 +844,13 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
   .game-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   .game-body h3 { font-size: 0.9rem; }
   .tabs { width: 100%; }
+  /* filtres : une ligne qui défile au doigt, l'étiquette au-dessus */
+  .reco-filters { padding: 0.7rem 0 0.7rem 0.75rem; }
+  .filter-row { flex-direction: column; align-items: stretch; gap: 0.3rem; }
+  .filter-label { width: auto; }
+  .filter-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-right: 0.75rem; -webkit-overflow-scrolling: touch; }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .filter-chips .chip { flex: none; white-space: nowrap; }
 }
 
 /* ---------- Bannière « Installer l'application » (téléphone) ---------- */

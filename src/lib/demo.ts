@@ -42,6 +42,16 @@ export function demoCatalog(): Game[] {
   );
 }
 
+/** Jeux d'exemple pour les recommandations : chacun « sort » sur une partie des plateformes demandées. */
+export function demoCandidates(platformSlugs: string[], genreSlugs: string[]): Game[] {
+  return demoCatalog()
+    .filter((g) => g.genres.some((x) => genreSlugs.includes(x.slug)))
+    .map((g, i) => {
+      const on = platformSlugs.filter((_, j) => (i + j * 2) % 3 !== 0);
+      return { ...g, platforms: on.length ? on : [platformSlugs[i % platformSlugs.length]] };
+    });
+}
+
 export function demoCatalogPage(opts: { query?: string; sort: "populaires" | "notes" | "recents"; page: number; pageSize: number }) {
   const q = opts.query?.toLowerCase() ?? "";
   const all = demoCatalog()
