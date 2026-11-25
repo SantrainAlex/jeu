@@ -2,15 +2,21 @@
 
 import { useRef } from "react";
 import { rarityInfo, type Card } from "@/lib/cards";
+import type { Finish } from "@/lib/data";
+
+const FINISH_LABEL: Record<Finish, string> = { argent: "Argent", or: "Or" };
 
 /**
  * Une carte à collectionner, qui s'incline en 3D sous la souris avec un reflet holographique.
- * `vitrail` = numéro du vitrail ; `hidden` = face cachée (avant révélation).
+ * `vitrail` = numéro du vitrail ; `hidden` = face cachée (avant révélation) ;
+ * `badge` = « Nouvelle ! » ou « Doublon » à l'ouverture d'un booster ; `finish` = finition argent ou or.
  */
 export function TradingCard({
   card,
   vitrail,
   count,
+  badge,
+  finish,
   hidden = false,
   onReveal,
   style,
@@ -18,6 +24,8 @@ export function TradingCard({
   card: Card;
   vitrail?: number;
   count?: number;
+  badge?: "new" | "dup";
+  finish?: Finish;
   hidden?: boolean;
   onReveal?: () => void;
   style?: React.CSSProperties;
@@ -25,7 +33,7 @@ export function TradingCard({
   const ref = useRef<HTMLButtonElement>(null);
   const r = rarityInfo(card.rarity);
   const year = card.released?.slice(0, 4);
-  const className = ["tcard", `rarity-${card.rarity}`, vitrail ? "vitrail" : "", hidden ? "hidden" : "revealed"].join(" ");
+  const className = ["tcard", `rarity-${card.rarity}`, vitrail ? "vitrail" : "", finish ? `finish-${finish}` : "", hidden ? "hidden" : "revealed"].join(" ");
 
   // position de la souris sur la carte → inclinaison et reflet
   const onMove = (e: React.PointerEvent) => {
@@ -57,7 +65,7 @@ export function TradingCard({
       onClick={hidden ? onReveal : undefined}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
-      aria-label={hidden ? "Retourner la carte" : `${card.name}, ${r.label}${vitrail ? `, vitrail numéro ${vitrail}` : ""}`}
+      aria-label={hidden ? "Retourner la carte" : `${card.name}, ${r.label}${vitrail ? `, vitrail numéro ${vitrail}` : ""}${finish ? `, finition ${FINISH_LABEL[finish]}` : ""}${badge === "new" ? ", nouvelle carte" : badge === "dup" ? ", doublon" : ""}`}
       tabIndex={hidden ? 0 : -1}
     >
       <span className="tcard-inner">
@@ -75,10 +83,18 @@ export function TradingCard({
           </span>
           <span className="tcard-name">{card.name}</span>
           <span className="tcard-meta">
-            <span className="tcard-rarity">{vitrail ? `Vitrail n° ${vitrail}` : r.label}</span>
+            <span className="tcard-rarity">
+              {vitrail ? `Vitrail n° ${vitrail}` : r.label}
+              {finish && <span className="tcard-finish"> · {FINISH_LABEL[finish]}</span>}
+            </span>
             {year && <span className="mono">{year}</span>}
           </span>
           {count && count > 1 ? <span className="tcard-count mono">×{count}</span> : null}
+          {badge && (
+            <span className={`tcard-badge ${badge}`} aria-hidden="true">
+              {badge === "new" ? "Nouvelle !" : "Doublon"}
+            </span>
+          )}
           <span className="tcard-holo" aria-hidden="true" />
           <span className="tcard-glare" aria-hidden="true" />
         </span>

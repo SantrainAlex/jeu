@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { CardTabs } from "@/components/CardTabs";
 import { TradingCard } from "@/components/TradingCard";
 import {
   PACK_SIZE,
@@ -87,6 +88,7 @@ export default function CardsPage() {
   return (
     <>
       <h1>Cartes à collectionner</h1>
+      <CardTabs active="boosters" />
       <p className="muted">
         Ouvre des boosters de {PACK_SIZE} cartes et complète ton <Link href="/cartes/album">album</Link>. Chaque carte est
         un jeu vidéo : plus il est populaire, plus elle est rare.
@@ -127,6 +129,7 @@ export default function CardsPage() {
                   key={i}
                   card={c}
                   vitrail={c.vitrail}
+                  badge={i < revealed ? (c.isNew ? "new" : "dup") : undefined}
                   hidden={i >= revealed}
                   onReveal={() => i === revealed && reveal(revealed + 1)}
                   style={{ animationDelay: `${i * 90}ms` }}
@@ -141,12 +144,17 @@ export default function CardsPage() {
                     Tout retourner
                   </button>
                 </>
-              ) : packs.total > 0 ? (
-                <button type="button" className="button big" onClick={open}>
-                  Ouvrir un autre booster ({packs.total})
-                </button>
               ) : (
-                <Link href="/cartes/album" className="button big">Voir mon album →</Link>
+                <>
+                  {packs.total > 0 ? (
+                    <button type="button" className="button big" onClick={open}>
+                      Ouvrir un autre booster ({packs.total})
+                    </button>
+                  ) : (
+                    <Link href="/cartes/album" className="button big">Voir mon album →</Link>
+                  )}
+                  <PackSummary cards={pulled} />
+                </>
               )}
             </div>
           </>
@@ -170,6 +178,10 @@ export default function CardsPage() {
 
         <ul className="booster-rules">
           <li>🎁 1 booster gratuit chaque jour ({packs.free ? "disponible" : "reviens demain"})</li>
+          <li>
+            ♻️ Tes doublons servent à l&apos;<Link href="/cartes/atelier">atelier</Link> : recycle-les en pièces, fabrique
+            les cartes qui te manquent ou passe-les en argent et en or
+          </li>
           <li>
             ⭐ +1 booster tous les {RATINGS_PER_BONUS} jeux notés : encore {nextBonusIn} note{nextBonusIn > 1 ? "s" : ""} pour le
             prochain
@@ -217,5 +229,21 @@ export default function CardsPage() {
         </p>
       </section>
     </>
+  );
+}
+
+function PackSummary({ cards }: { cards: PulledCard[] }) {
+  const fresh = cards.filter((c) => c.isNew).length;
+  const dups = cards.length - fresh;
+  return (
+    <span className="muted pack-summary">
+      {fresh} nouvelle{fresh > 1 ? "s" : ""} · {dups} doublon{dups > 1 ? "s" : ""}
+      {dups > 0 && (
+        <>
+          {" "}
+          · <Link href="/cartes/atelier">Aller à l&apos;atelier</Link>
+        </>
+      )}
+    </span>
   );
 }

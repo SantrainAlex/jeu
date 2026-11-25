@@ -6,7 +6,7 @@
  */
 import { useSyncExternalStore } from "react";
 import { VITRAIL_TOTAL, availablePacks, localDay, openPack, type Card, type PulledCard } from "./cards";
-import { EMPTY, normalize, type Data, type Profile, type Rating } from "./data";
+import { EMPTY, normalize, type Collection, type Data, type Profile, type Rating } from "./data";
 
 export type { Collection, Data, Profile, Rating } from "./data";
 
@@ -144,18 +144,22 @@ export async function openBooster(pool: Card[], onlineStock?: VitrailStock): Pro
       const packs = availablePacks(c, Object.keys(d.ratings).length, today);
       const owned = { ...c.cards };
       const vitraux = [...c.vitraux];
-      for (const card of cards) {
+      cards.forEach((card, i) => {
         const { vitrail, ...base } = card;
         if (vitrail) {
           vitraux.push({ card: base, number: vitrail, at: now });
+          cards[i] = { ...card, isNew: true };
         } else {
           const prev = owned[base.id];
-          owned[base.id] = { card: base, count: (prev?.count ?? 0) + 1, firstAt: prev?.firstAt ?? now };
+          // « Nouvelle ! » si tu ne l'avais pas avant ce booster (la 2e du même booster est un doublon)
+          cards[i] = { ...card, isNew: !prev };
+          owned[base.id] = prev ? { ...prev, count: prev.count + 1 } : { card: base, count: 1, firstAt: now };
         }
-      }
+      });
       return {
         ...d,
         collection: {
+          ...c,
           cards: owned,
           vitraux,
           lastFreeDay: packs.free ? today : c.lastFreeDay,
@@ -169,4 +173,18 @@ export async function openBooster(pool: Card[], onlineStock?: VitrailStock): Pro
   } finally {
     opening = false;
   }
+}
+
+/**
+ * Applique une action de l'atelier (recycler, fabriquer, échanger, améliorer) à la collection.
+ * `action` renvoie null si elle n'est pas possible ; dans ce cas rien ne change.
+ */
+export function updateCollection<T extends Collection | { collection: Collection }>(
+  action: (c: Collection) => T | null,
+): T | null {
+  const result = action(read().collection);
+  if (!result) return null;
+  const next = "collection" in result ? (result as { collection: Collection }).collection : (result as Collection);
+  write((d) => ({ ...d, collection: next }));
+  return result;
 }

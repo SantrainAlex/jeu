@@ -54,4 +54,23 @@ describe("mergeData", () => {
     expect(normalize(null)).toEqual(EMPTY);
     expect(normalize({ ratings: { 1: rating(1, 4, "t") } }).collection.packsOpened).toBe(0);
   });
+  it("garde les exemplaires utilisés, la meilleure finition et les pièces les plus avancées", () => {
+    const base = normalize({});
+    const local = {
+      ...base,
+      collection: {
+        ...base.collection,
+        cards: { 1: { card: card(1), count: 10, firstAt: "a", used: 4, finish: "argent" as const } },
+        coinsEarned: 50,
+        coinsSpent: 0,
+      },
+    };
+    const cloud = {
+      ...base,
+      collection: { ...base.collection, cards: { 1: { card: card(1), count: 8, firstAt: "a" } }, coinsEarned: 20, coinsSpent: 40 },
+    };
+    const m = mergeData(local, cloud).collection;
+    expect(m.cards[1]).toMatchObject({ count: 10, used: 4, finish: "argent" });
+    expect([m.coinsEarned, m.coinsSpent]).toEqual([50, 40]);
+  });
 });
