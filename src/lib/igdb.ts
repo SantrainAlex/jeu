@@ -1,4 +1,6 @@
 import { genreFromIgdb, igdbIdsForGenres } from "./genres";
+import { cleanDescription, type GameDetails } from "./details";
+import { isSameGame } from "./merge";
 import type { Game } from "./types";
 
 /**
@@ -41,7 +43,7 @@ async function getToken(): Promise<string> {
 const FIELDS =
   "fields name,slug,first_release_date,total_rating,genres.name,cover.image_id,artworks.image_id,screenshots.image_id;";
 
-async function query(body: string): Promise<Game[]> {
+async function post<T>(body: string, revalidate = 3600, timeout?: number): Promise<T[]> {
   const res = await fetch("https://api.igdb.com/v4/games", {
     method: "POST",
     headers: {
@@ -49,11 +51,16 @@ async function query(body: string): Promise<Game[]> {
       Authorization: `Bearer ${await getToken()}`,
       "Content-Type": "text/plain",
     },
-    body: FIELDS + body,
-    next: { revalidate: 3600 },
+    body,
+    next: { revalidate },
+    signal: timeout ? AbortSignal.timeout(timeout) : undefined,
   });
   if (!res.ok) throw new Error(`IGDB a répondu ${res.status}`);
-  return ((await res.json()) as IgdbGame[]).map(toGame);
+  return (await res.json()) as T[];
+}
+
+async function query(body: string): Promise<Game[]> {
+  return (await post<IgdbGame>(FIELDS + body)).map(toGame);
 }
 
 function imageUrl(g: IgdbGame): string | null {
@@ -126,4 +133,87 @@ export function igdbPopular(offset: number) {
   return query(
     `where version_parent = null & total_rating_count >= 20; sort total_rating_count desc; limit 500; offset ${offset};`,
   );
+}
+
+// ---------- Fiche détaillée d'un jeu ----------
+
+type IgdbDetail = IgdbGame & {
+  summary?: string;
+  storyline?: string;
+  total_rating_count?: number;
+  aggregated_rating?: number;
+  platforms?: { name: string }[];
+  involved_companies?: { company: { name: string }; developer: boolean; publisher: boolean }[];
+  game_modes?: { name: string }[];
+  videos?: { video_id: string; name?: string }[];
+  url?: string;
+};
+
+const DETAIL_FIELDS =
+  "fields name,slug,first_release_date,total_rating,total_rating_count,aggregated_rating,summary,storyline,url," +
+  "genres.name,platforms.name,cover.image_id,artworks.image_id,screenshots.image_id,videos.video_id,videos.name," +
+  "involved_companies.company.name,involved_companies.developer,involved_companies.publisher,game_modes.name;";
+
+/** Modes de jeu IGDB en français. */
+const IGDB_MODES: Record<string, string> = {
+  "Single player": "Solo",
+  Multiplayer: "Multijoueur",
+  "Co-operative": "Coopération",
+  "Split screen": "Écran partagé",
+  "Massively Multiplayer Online (MMO)": "MMO",
+  "Battle Royale": "Battle royale",
+};
+
+/** Noms de plateformes IGDB raccourcis. */
+const IGDB_PLATFORMS: Record<string, string> = {
+  "PC (Microsoft Windows)": "PC",
+  "Xbox Series X|S": "Xbox Series X|S",
+  "Nintendo Switch 2": "Nintendo Switch 2",
+};
+
+const img = (size: string, id: string) => `https://images.igdb.com/igdb/image/upload/${size}/${id}.jpg`;
+
+/** Transforme une réponse IGDB en fiche du site. */
+export function igdbToDetails(g: IgdbDetail): GameDetails {
+  const base = toGame(g);
+  const companies = g.involved_companies ?? [];
+  const summary = [g.summary, g.storyline].filter(Boolean).join("\n\n");
+  const shots = [...(g.screenshots ?? []), ...(g.artworks ?? [])];
+  return {
+    ...base,
+    cover: g.cover ? img("t_cover_big", g.cover.image_id) : null,
+    image: g.artworks?.[0]
+      ? img("t_1080p", g.artworks[0].image_id)
+      : g.screenshots?.[0]
+        ? img("t_1080p", g.screenshots[0].image_id)
+        : base.image,
+    ratingCount: g.total_rating_count ?? 0,
+    press: g.aggregated_rating ? Math.round(g.aggregated_rating) : null,
+    platforms: (g.platforms ?? []).map((p) => IGDB_PLATFORMS[p.name] ?? p.name),
+    developers: companies.filter((c) => c.developer).map((c) => c.company.name),
+    publishers: companies.filter((c) => c.publisher).map((c) => c.company.name),
+    modes: (g.game_modes ?? []).map((m) => IGDB_MODES[m.name] ?? m.name),
+    playtime: 0,
+    ageRating: null,
+    description: cleanDescription(summary),
+    website: null,
+    videos: (g.videos ?? []).map((v) => ({ kind: "youtube" as const, id: v.video_id, name: v.name ?? "Vidéo" })),
+    screenshots: shots.map((s) => ({ thumb: img("t_screenshot_big", s.image_id), full: img("t_1080p", s.image_id) })),
+    links: g.url ? [{ source: "igdb", url: g.url }] : [],
+  };
+}
+
+/** La fiche complète d'un jeu IGDB (null s'il n'existe pas). */
+export async function igdbDetails(id: number): Promise<GameDetails | null> {
+  const [g] = await post<IgdbDetail>(`${DETAIL_FIELDS} where id = ${id};`, 86400, 6000);
+  return g ? igdbToDetails(g) : null;
+}
+
+/** Cherche sur IGDB le même jeu qu'un jeu RAWG (même titre et année proche), avec sa fiche complète. */
+export async function igdbFind(name: string, released: string | null): Promise<GameDetails | null> {
+  const q = name.replace(/["\\]/g, " ").trim();
+  const found = await post<IgdbDetail>(`${DETAIL_FIELDS} search "${q}"; where version_parent = null; limit 8;`, 86400, 6000);
+  const target = { ...toGame({ id: 0, slug: "", name }), released };
+  const match = found.find((g) => isSameGame(target, toGame(g)));
+  return match ? igdbToDetails(match) : null;
 }
