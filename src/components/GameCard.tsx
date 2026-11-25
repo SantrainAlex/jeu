@@ -1,4 +1,4 @@
-import type { Game } from "@/lib/rawg";
+import type { Game } from "@/lib/types";
 import { RatingStars } from "./RatingStars";
 
 export function GameCard({ game, extra }: { game: Game; extra?: React.ReactNode }) {
@@ -23,7 +23,10 @@ export function GameCard({ game, extra }: { game: Game; extra?: React.ReactNode 
             <span key={g.slug} className="tag">{g.name}</span>
           ))}
         </div>
-        {game.rating > 0 && <p className="rating">★ {game.rating.toFixed(1)} / 5 <span className="muted">(RAWG)</span></p>}
+        {game.rating > 0 && <p className="rating">★ {game.rating.toFixed(1)} / 5</p>}
+        {game.sources.length > 0 && (
+          <p className="sources">Source : {game.sources.map((s) => (s === "rawg" ? "RAWG" : "IGDB")).join(" + ")}</p>
+        )}
         {extra}
         <RatingStars game={game} />
       </div>

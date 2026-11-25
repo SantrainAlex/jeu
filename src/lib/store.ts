@@ -6,7 +6,7 @@
  * Quand on ouvrira le site aux amis (étape 4), on remplacera ce fichier par des comptes en ligne.
  */
 import { useSyncExternalStore } from "react";
-import type { Genre } from "./rawg";
+import type { Genre } from "./types";
 
 export type Profile = {
   /** plateformes que tu possèdes */

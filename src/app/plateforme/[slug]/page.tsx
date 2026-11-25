@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GameCard } from "@/components/GameCard";
-import { PERIODS, getPlatform, parsePeriod, type Period } from "@/lib/platforms";
-import { getNewGames } from "@/lib/rawg";
+import { PlatformTabs } from "@/components/PlatformTabs";
+import { getPlatform, parsePeriod } from "@/lib/platforms";
+import { getNewGames } from "@/lib/games";
 
 // La page dépend de la période choisie (?periode=...), elle est donc générée à la demande.
 export const dynamic = "force-dynamic";
@@ -29,27 +29,12 @@ export default async function PlatformPage({
 
   return (
     <>
-      <p><Link href="/" className="muted">← Toutes les plateformes</Link></p>
-      <h1 style={{ color: platform.color }}>{platform.name}</h1>
-
-      <div className="tabs" role="tablist">
-        {(Object.keys(PERIODS) as Period[]).map((p) => (
-          <Link
-            key={p}
-            href={`/plateforme/${platform.slug}?periode=${p}`}
-            className={p === period ? "tab active" : "tab"}
-            role="tab"
-            aria-selected={p === period}
-          >
-            {PERIODS[p].label}
-          </Link>
-        ))}
-      </div>
+      <PlatformTabs platform={platform} active={period} />
 
       {demo && (
         <p className="notice">
-          Ce sont des jeux d&apos;exemple. Ajoute ta clé RAWG dans le fichier <code>.env.local</code> pour
-          voir les vraies sorties.
+          Ce sont des jeux d&apos;exemple. Ajoute ta clé RAWG et/ou tes identifiants IGDB dans le fichier{" "}
+          <code>.env.local</code> pour voir les vraies sorties.
         </p>
       )}
 

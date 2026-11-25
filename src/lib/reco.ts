@@ -1,4 +1,4 @@
-import type { Game, Genre } from "./rawg";
+import type { Game, Genre } from "./types";
 
 /** Ce qu'il faut savoir d'une note pour calculer des goûts (sans dépendre du stockage). */
 export type RatedGame = { id: number; stars: number; genres: Genre[] };

@@ -41,7 +41,7 @@ export default function MyRatingsPage() {
           )}
           <div className="game-grid">
             {list.map((r) => (
-              <GameCard key={r.id} game={{ ...r, rating: 0 }} />
+              <GameCard key={r.id} game={{ ...r, rating: 0, sources: [] }} />
             ))}
           </div>
         </>
