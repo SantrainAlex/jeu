@@ -73,4 +73,11 @@ describe("mergeData", () => {
     expect(m.cards[1]).toMatchObject({ count: 10, used: 4, finish: "argent" });
     expect([m.coinsEarned, m.coinsSpent]).toEqual([50, 40]);
   });
+  it("garde la réserve de boosters de la dernière ouverture", () => {
+    const base = normalize({});
+    const local = { ...base, collection: { ...base.collection, stock: 2, stockAt: "2026-11-25T12:00:00.000Z" } };
+    const cloud = { ...base, collection: { ...base.collection, stock: 4, stockAt: "2026-11-25T10:00:00.000Z" } };
+    expect(mergeData(local, cloud).collection).toMatchObject({ stock: 2, stockAt: "2026-11-25T12:00:00.000Z" });
+    expect(mergeData(base, base).collection.stockAt).toBeUndefined();
+  });
 });

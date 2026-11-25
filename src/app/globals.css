@@ -468,6 +468,22 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 }
 .vitrail .tcard-rarity { color: var(--gold); }
 
+/* Jauge de recharge des boosters */
+.recharge { display: grid; gap: 0.35rem; margin-top: 0.9rem; }
+.recharge-pips { display: flex; gap: 0.35rem; }
+.pip {
+  --p: 0; position: relative; width: 34px; height: 8px; border-radius: 999px; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.pip.full { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 10px var(--primary-soft); }
+.pip.charging::after {
+  content: ""; position: absolute; inset: 0; width: calc(var(--p) * 100%);
+  background: color-mix(in srgb, var(--primary) 60%, transparent); transition: width 1s linear;
+}
+.recharge .small { margin-top: 0; }
+.booster-closed .recharge { justify-items: inherit; }
+@media (max-width: 560px) { .recharge { justify-items: center; } }
+
 /* Badge « Nouvelle ! » / « Doublon » à l'ouverture d'un booster */
 .tcard-badge {
   position: absolute; top: 0.55rem; left: 0.55rem; z-index: 3; padding: 0.12rem 0.5rem; border-radius: 999px;

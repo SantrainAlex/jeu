@@ -5,7 +5,7 @@
  * Quand tu es connecté, elles sont en plus synchronisées avec ton compte (voir cloud.ts).
  */
 import { useSyncExternalStore } from "react";
-import { VITRAIL_TOTAL, availablePacks, localDay, openPack, type Card, type PulledCard } from "./cards";
+import { VITRAIL_TOTAL, availablePacks, consumePack, openPack, type Card, type PulledCard } from "./cards";
 import { EMPTY, normalize, type Collection, type Data, type Profile, type Rating } from "./data";
 
 export type { Collection, Data, Profile, Rating } from "./data";
@@ -140,8 +140,7 @@ export async function openBooster(pool: Card[], onlineStock?: VitrailStock): Pro
     const now = new Date().toISOString();
     write((d) => {
       const c = d.collection;
-      const today = localDay();
-      const packs = availablePacks(c, Object.keys(d.ratings).length, today);
+      const packs = consumePack(c, Object.keys(d.ratings).length) ?? c;
       const owned = { ...c.cards };
       const vitraux = [...c.vitraux];
       cards.forEach((card, i) => {
@@ -162,8 +161,9 @@ export async function openBooster(pool: Card[], onlineStock?: VitrailStock): Pro
           ...c,
           cards: owned,
           vitraux,
-          lastFreeDay: packs.free ? today : c.lastFreeDay,
-          bonusClaimed: packs.free ? c.bonusClaimed : c.bonusClaimed + 1,
+          stock: packs.stock,
+          stockAt: packs.stockAt,
+          bonusClaimed: packs.bonusClaimed,
           packsOpened: c.packsOpened + 1,
           vitrailsGiven: c.vitrailsGiven + (localVitrail ? 1 : 0),
         },

@@ -3,6 +3,8 @@ import {
   RARITIES,
   VITRAIL_CHANCE,
   availablePacks,
+  consumePack,
+  type PackState,
   oddsTable,
   openPack,
   rarityForRank,
@@ -78,9 +80,39 @@ describe("openPack", () => {
 });
 
 describe("boosters disponibles", () => {
-  it("1 gratuit par jour + 1 tous les 3 jeux notés", () => {
-    expect(availablePacks({ lastFreeDay: null, bonusClaimed: 0 }, 0, "2026-11-25").total).toBe(1);
-    expect(availablePacks({ lastFreeDay: "2026-11-25", bonusClaimed: 0 }, 7, "2026-11-25")).toEqual({ free: 0, bonus: 2, total: 2 });
-    expect(availablePacks({ lastFreeDay: "2026-11-25", bonusClaimed: 2 }, 7, "2026-11-26")).toEqual({ free: 1, bonus: 0, total: 1 });
+  const T0 = new Date("2026-11-25T12:00:00Z").getTime();
+  const MIN = 60 * 1000;
+
+  it("réserve pleine (5) au départ, + 1 tous les 3 jeux notés", () => {
+    expect(availablePacks({ bonusClaimed: 0 }, 0, T0)).toEqual({ timed: 5, bonus: 0, total: 5, nextIn: null });
+    expect(availablePacks({ bonusClaimed: 0 }, 7, T0).total).toBe(7);
+  });
+
+  it("à 5, ouvrir un booster relance la recharge : +1 toutes les 30 min", () => {
+    const s1 = consumePack({ bonusClaimed: 0 }, 0, T0)!;
+    expect(availablePacks(s1, 0, T0)).toMatchObject({ timed: 4, nextIn: 30 * MIN });
+    expect(availablePacks(s1, 0, T0 + 10 * MIN).nextIn).toBe(20 * MIN);
+    expect(availablePacks(s1, 0, T0 + 30 * MIN)).toMatchObject({ timed: 5, nextIn: null });
+  });
+
+  it("ne dépasse jamais 5, et garde l'avancement de la recharge en cours", () => {
+    let s: PackState = { bonusClaimed: 0 };
+    for (let i = 0; i < 5; i++) s = consumePack(s, 0, T0)!;
+    expect(availablePacks(s, 0, T0).timed).toBe(0);
+    expect(consumePack(s, 0, T0)).toBeNull();
+    // 75 min plus tard : 2 boosters, le 3e dans 15 min
+    expect(availablePacks(s, 0, T0 + 75 * MIN)).toMatchObject({ timed: 2, nextIn: 15 * MIN });
+    s = consumePack(s, 0, T0 + 75 * MIN)!;
+    expect(availablePacks(s, 0, T0 + 90 * MIN)).toMatchObject({ timed: 2, nextIn: 30 * MIN });
+    // une journée plus tard : plafonné à 5
+    expect(availablePacks(s, 0, T0 + 24 * 60 * MIN).timed).toBe(5);
+  });
+
+  it("utilise un bonus quand la réserve est vide", () => {
+    let s: PackState = { bonusClaimed: 0 };
+    for (let i = 0; i < 5; i++) s = consumePack(s, 3, T0)!;
+    s = consumePack(s, 3, T0)!;
+    expect(s.bonusClaimed).toBe(1);
+    expect(consumePack(s, 3, T0)).toBeNull();
   });
 });

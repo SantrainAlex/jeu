@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
 import { TradingCard } from "@/components/TradingCard";
 import {
+  MAX_STOCK,
   PACK_SIZE,
+  RECHARGE_MS,
   RATINGS_PER_BONUS,
   VITRAIL_CHANCE,
   VITRAIL_TOTAL,
@@ -48,8 +50,15 @@ export default function CardsPage() {
     if (cloudEnabled) getVitrailsLeft().then(setOnlineLeft);
   }, [cloud.status]);
 
+  // l'horloge avance chaque seconde pour le compte à rebours de la recharge
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const ratingsCount = Object.keys(ratings).length;
-  const packs = availablePacks(collection, ratingsCount);
+  const packs = availablePacks(collection, ratingsCount, now);
   const nextBonusIn = RATINGS_PER_BONUS - (ratingsCount % RATINGS_PER_BONUS);
   const vitrailsLeft = cloudEnabled ? (onlineLeft ?? VITRAIL_TOTAL) : Math.max(0, VITRAIL_TOTAL - collection.vitrailsGiven);
   const signedOutWithAccounts = cloudEnabled && cloud.status !== "signedIn";
@@ -167,17 +176,21 @@ export default function CardsPage() {
             </div>
             <div>
               <p className="booster-count">
-                {!ready ? "…" : packs.total > 0 ? `${packs.total} booster${packs.total > 1 ? "s" : ""} à ouvrir` : "Plus de booster pour aujourd'hui"}
+                {!ready ? "…" : packs.total > 0 ? `${packs.total} booster${packs.total > 1 ? "s" : ""} à ouvrir` : "Plus de booster pour l'instant"}
               </p>
               <button type="button" className="button big" disabled={!ready || !pool || packs.total === 0} onClick={open}>
                 {pool || error ? "Ouvrir un booster" : "Préparation des cartes…"}
               </button>
+              {ready && <Recharge timed={packs.timed} nextIn={packs.nextIn} />}
             </div>
           </div>
         )}
 
         <ul className="booster-rules">
-          <li>🎁 1 booster gratuit chaque jour ({packs.free ? "disponible" : "reviens demain"})</li>
+          <li>
+            ⏱️ 1 booster toutes les {RECHARGE_MS / 60000} minutes, jusqu&apos;à {MAX_STOCK} en réserve (
+            {packs.nextIn === null ? "réserve pleine" : `prochain dans ${countdown(packs.nextIn)}`})
+          </li>
           <li>
             ♻️ Tes doublons servent à l&apos;<Link href="/cartes/atelier">atelier</Link> : recycle-les en pièces, fabrique
             les cartes qui te manquent ou passe-les en argent et en or
@@ -245,5 +258,33 @@ function PackSummary({ cards }: { cards: PulledCard[] }) {
         </>
       )}
     </span>
+  );
+}
+
+const countdown = (ms: number) => {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const sec = String(total % 60).padStart(2, "0");
+  return `${m}:${sec}`;
+};
+
+/** Jauge de la réserve : 5 cases, la case en cours se remplit pendant la recharge. */
+function Recharge({ timed, nextIn }: { timed: number; nextIn: number | null }) {
+  const progress = nextIn === null ? 0 : 1 - nextIn / RECHARGE_MS;
+  return (
+    <div className="recharge" aria-label={`Réserve : ${timed} booster${timed > 1 ? "s" : ""} sur ${MAX_STOCK}`}>
+      <div className="recharge-pips" aria-hidden="true">
+        {Array.from({ length: MAX_STOCK }, (_, i) => (
+          <span
+            key={i}
+            className={i < timed ? "pip full" : i === timed ? "pip charging" : "pip"}
+            style={i === timed ? ({ "--p": progress } as React.CSSProperties) : undefined}
+          />
+        ))}
+      </div>
+      <span className="muted mono small">
+        {nextIn === null ? `Réserve pleine ${MAX_STOCK}/${MAX_STOCK}` : `${timed}/${MAX_STOCK} · +1 dans ${countdown(nextIn)}`}
+      </span>
+    </div>
   );
 }
