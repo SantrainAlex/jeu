@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { cloudEnabled, useCloud } from "@/lib/cloud";
 
-/** Lien « Se connecter » ou « Mon compte » dans le menu. */
+/** Bouton « Se connecter » ou pastille du compte, en haut à droite. */
 export function AccountLink() {
   const cloud = useCloud();
-  if (!cloudEnabled) return null;
+  if (!cloudEnabled) return <span className="account-spacer" />;
   if (cloud.status === "signedIn") {
+    const initial = (cloud.email ?? "?").slice(0, 1).toUpperCase();
     return (
-      <Link href="/connexion" className="account-link" title={cloud.email ?? undefined}>
-        👤 Mon compte
+      <Link href="/connexion" className="account-avatar" title={cloud.email ?? "Mon compte"} aria-label="Mon compte">
+        {initial}
       </Link>
     );
   }

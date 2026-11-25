@@ -1,30 +1,27 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { AccountLink } from "@/components/AccountLink";
+import type { Metadata, Viewport } from "next";
+import { Chakra_Petch, Inter, JetBrains_Mono } from "next/font/google";
 import { CloudStarter } from "@/components/CloudStarter";
+import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
+
+// Titres « gaming », texte lisible, et chiffres à chasse fixe (notes, pourcentages, numéros)
+const display = Chakra_Petch({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
+const body = Inter({ subsets: ["latin"], variable: "--font-body" });
+const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "Jeu — les nouveautés par plateforme",
   description: "Les nouveaux jeux vidéo du jour, de la semaine et du mois, plateforme par plateforme.",
 };
 
+export const viewport: Viewport = { themeColor: "#0a0b0f" };
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
         <CloudStarter />
-        <header className="site-header">
-          <Link href="/" className="logo">🎮 Jeu</Link>
-          <nav>
-            <Link href="/">Plateformes</Link>
-            <Link href="/recommandations">Recommandations</Link>
-            <Link href="/mes-notes">Mes notes</Link>
-            <Link href="/cartes">Cartes</Link>
-            <Link href="/profil">Mon profil</Link>
-            <AccountLink />
-          </nav>
-        </header>
+        <SiteNav />
         <main className="container">{children}</main>
         <footer className="site-footer">
           Données des jeux fournies par <a href="https://rawg.io" target="_blank" rel="noreferrer">RAWG</a> et{" "}
