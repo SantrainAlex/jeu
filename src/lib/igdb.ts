@@ -43,8 +43,8 @@ async function getToken(): Promise<string> {
 const FIELDS =
   "fields name,slug,first_release_date,total_rating,genres.name,cover.image_id,artworks.image_id,screenshots.image_id;";
 
-async function post<T>(body: string, revalidate = 3600, timeout?: number): Promise<T[]> {
-  const res = await fetch("https://api.igdb.com/v4/games", {
+async function post<T>(body: string, revalidate = 3600, timeout?: number, endpoint = "games"): Promise<T[]> {
+  const res = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
     method: "POST",
     headers: {
       "Client-ID": process.env.IGDB_CLIENT_ID ?? "",
@@ -163,6 +163,12 @@ const IGDB_MODES: Record<string, string> = {
   "Massively Multiplayer Online (MMO)": "MMO",
   "Battle Royale": "Battle royale",
 };
+
+/** Identifiant IGDB d'une plateforme d'après son nom exact (null si IGDB ne la connaît pas). Mis en cache 1 jour. */
+export async function igdbPlatformId(name: string): Promise<number | null> {
+  const rows = await post<{ id: number }>(`fields id; where name = "${name.replace(/"/g, "")}"; limit 1;`, 86400, 5000, "platforms");
+  return rows[0]?.id ?? null;
+}
 
 /** Noms de plateformes IGDB raccourcis. */
 const IGDB_PLATFORMS: Record<string, string> = {

@@ -6,7 +6,7 @@ import { getPlatform } from "@/lib/platforms";
 
 /** Bandeau d'accueil : les grosses sorties de la semaine, toutes plateformes. */
 export async function HeroReleases() {
-  const platforms = ["switch", "ps5", "pc", "xbox"].map((s) => getPlatform(s)!);
+  const platforms = ["switch-2", "switch", "ps5", "pc", "xbox"].map((s) => getPlatform(s)!);
   const results = await Promise.allSettled(platforms.map((p) => getNewGames(p, "semaine")));
   const lists = results.flatMap((r) => (r.status === "fulfilled" ? [r.value.games] : []));
   const games = mergeGames(...lists)

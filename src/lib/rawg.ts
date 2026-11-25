@@ -39,6 +39,16 @@ async function query(params: Record<string, string>): Promise<Game[]> {
   }));
 }
 
+/** Identifiant RAWG d'une plateforme d'après son nom exact (null si RAWG ne la connaît pas). Mis en cache 1 jour. */
+export async function rawgPlatformId(name: string): Promise<number | null> {
+  const search = new URLSearchParams({ key: process.env.RAWG_API_KEY ?? "", page_size: "100" });
+  const res = await fetch(`${API}/platforms?${search}`, { next: { revalidate: 86400 }, signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(`RAWG a répondu ${res.status}`);
+  const data = (await res.json()) as { results: { id: number; name: string }[] };
+  const wanted = name.toLowerCase();
+  return data.results.find((p) => p.name.toLowerCase() === wanted)?.id ?? null;
+}
+
 /** Sorties entre deux dates (AAAA-MM-JJ) sur des plateformes RAWG. */
 export function rawgReleases(platformIds: number[], from: string, to: string) {
   return query({ platforms: platformIds.join(","), dates: `${from},${to}`, ordering: "-added" });

@@ -1,9 +1,18 @@
 import { combineDetails, parseGameKey, type GameDetails } from "./details";
 import { demoCatalog, demoCatalogPage, demoDetails, demoReleases } from "./demo";
-import { hasIgdb, igdbByGenres, igdbCatalog, igdbDetails, igdbFind, igdbReleases } from "./igdb";
+import { hasIgdb, igdbByGenres, igdbCatalog, igdbDetails, igdbFind, igdbPlatformId, igdbReleases } from "./igdb";
 import { mergeGames } from "./merge";
 import { PERIODS, type Period, type Platform } from "./platforms";
-import { hasRawg, rawgByGenres, rawgCatalog, rawgDetails, rawgFind, rawgReleases, type CatalogSort } from "./rawg";
+import {
+  hasRawg,
+  rawgByGenres,
+  rawgCatalog,
+  rawgDetails,
+  rawgFind,
+  rawgPlatformId,
+  rawgReleases,
+  type CatalogSort,
+} from "./rawg";
 import type { Game, GamesResult, Source } from "./types";
 
 export type { Game, GamesResult, Genre } from "./types";
@@ -14,6 +23,32 @@ function dateRange(period: Period) {
   const from = new Date();
   from.setDate(to.getDate() - (PERIODS[period].days - 1));
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
+}
+
+/**
+ * Identifiants d'une plateforme dans une source. Si la plateforme a un `lookupName`, on demande d'abord
+ * à la source son identifiant (en cas d'échec, on garde ceux écrits dans platforms.ts).
+ */
+async function idsIn(source: "rawg" | "igdb", platform: Platform): Promise<number[]> {
+  const known = source === "rawg" ? platform.rawgIds : platform.igdbIds;
+  if (!platform.lookupName) return known;
+  try {
+    const id = await (source === "rawg" ? rawgPlatformId : igdbPlatformId)(platform.lookupName);
+    return id === null ? known : [id];
+  } catch {
+    return known;
+  }
+}
+
+/**
+ * Appelle `run` avec les identifiants des plateformes dans la source.
+ * Si la source ne connaît aucune des plateformes demandées, elle ne renvoie rien
+ * (sans ça, une liste vide voudrait dire « toutes les plateformes »).
+ */
+async function onPlatforms(source: "rawg" | "igdb", platforms: Platform[], run: (ids: number[]) => Promise<Game[]>) {
+  const ids = (await Promise.all(platforms.map((p) => idsIn(source, p)))).flat();
+  if (platforms.length > 0 && ids.length === 0) return [];
+  return run(ids);
 }
 
 /** Temps maximum d'attente d'une source, en millisecondes. */
@@ -67,12 +102,12 @@ export async function getNewGames(platform: Platform, period: Period): Promise<G
   const { from, to } = dateRange(period);
   if (!hasRawg() && !hasIgdb()) {
     const count = { jour: 3, semaine: 9, mois: 18 }[period];
-    const seed = platform.slug.length * 7 + platform.rawgIds[0];
+    const seed = platform.slug.length * 7 + (platform.rawgIds[0] ?? platform.igdbIds[0]);
     return { games: demoReleases(seed, count, from, to), demo: true, sources: [] };
   }
   return fromBothSources(
-    hasRawg() ? () => rawgReleases(platform.rawgIds, from, to) : null,
-    hasIgdb() ? () => igdbReleases(platform.igdbIds, from, to) : null,
+    hasRawg() ? () => onPlatforms("rawg", [platform], (ids) => rawgReleases(ids, from, to)) : null,
+    hasIgdb() ? () => onPlatforms("igdb", [platform], (ids) => igdbReleases(ids, from, to)) : null,
   );
 }
 
@@ -86,8 +121,8 @@ export async function getCandidates(platforms: Platform[], genreSlugs: string[])
     };
   }
   return fromBothSources(
-    hasRawg() ? () => rawgByGenres(platforms.flatMap((p) => p.rawgIds), genreSlugs) : null,
-    hasIgdb() ? () => igdbByGenres(platforms.flatMap((p) => p.igdbIds), genreSlugs) : null,
+    hasRawg() ? () => onPlatforms("rawg", platforms, (ids) => rawgByGenres(ids, genreSlugs)) : null,
+    hasIgdb() ? () => onPlatforms("igdb", platforms, (ids) => igdbByGenres(ids, genreSlugs)) : null,
   );
 }
 
@@ -110,8 +145,8 @@ export async function getCatalog(
     return games;
   };
   const result = await fromBothSources(
-    hasRawg() ? () => rawgCatalog(platform.rawgIds, o).then(track) : null,
-    hasIgdb() ? () => igdbCatalog(platform.igdbIds, o).then(track) : null,
+    hasRawg() ? () => onPlatforms("rawg", [platform], (ids) => rawgCatalog(ids, o)).then(track) : null,
+    hasIgdb() ? () => onPlatforms("igdb", [platform], (ids) => igdbCatalog(ids, o)).then(track) : null,
   );
   return { ...result, hasMore: full };
 }
