@@ -1,68 +1,22 @@
 "use client";
 
 /**
- * Stockage local (dans le navigateur) du profil et des notes.
- * Pour l'instant le site est utilisé par une seule personne : tout reste sur ton ordinateur.
- * Quand on ouvrira le site aux amis (étape 4), on remplacera ce fichier par des comptes en ligne.
+ * Les données du joueur (profil, notes, collection), gardées dans le navigateur.
+ * Quand tu es connecté, elles sont en plus synchronisées avec ton compte (voir cloud.ts).
  */
 import { useSyncExternalStore } from "react";
 import { VITRAIL_TOTAL, availablePacks, localDay, openPack, type Card, type PulledCard } from "./cards";
-import type { Genre } from "./types";
+import { EMPTY, normalize, type Data, type Profile, type Rating } from "./data";
 
-export type Profile = {
-  /** plateformes que tu possèdes */
-  owned: string[];
-  /** plateformes qui t'intéressent */
-  interested: string[];
-};
-
-export type Rating = {
-  id: number;
-  slug: string;
-  name: string;
-  image: string | null;
-  released: string | null;
-  genres: Genre[];
-  /** note de 1 à 5 */
-  stars: number;
-  ratedAt: string;
-};
-
-export type Collection = {
-  /** cartes possédées : identifiant du jeu → carte et nombre d'exemplaires */
-  cards: Record<string, { card: Card; count: number; firstAt: string }>;
-  /** vitraux numérotés obtenus */
-  vitraux: { card: Card; number: number; at: string }[];
-  /** dernier jour où le booster gratuit a été ouvert */
-  lastFreeDay: string | null;
-  /** nombre de boosters bonus (gagnés en notant) déjà ouverts */
-  bonusClaimed: number;
-  packsOpened: number;
-  /**
-   * Vitraux déjà distribués. Pour l'instant compté sur ton navigateur ;
-   * avec les comptes en ligne (étape 4), ce stock sera partagé entre tous les joueurs.
-   */
-  vitrailsGiven: number;
-};
-
-type Data = { profile: Profile; ratings: Record<string, Rating>; collection: Collection };
+export type { Collection, Data, Profile, Rating } from "./data";
 
 const KEY = "jeu:v1";
 const EVENT = "jeu:store";
-const EMPTY_COLLECTION: Collection = {
-  cards: {},
-  vitraux: [],
-  lastFreeDay: null,
-  bonusClaimed: 0,
-  packsOpened: 0,
-  vitrailsGiven: 0,
-};
-const EMPTY: Data = { profile: { owned: [], interested: [] }, ratings: {}, collection: EMPTY_COLLECTION };
 
 let cachedRaw: string | null = null;
 let cachedData: Data = EMPTY;
 
-function read(): Data {
+export function read(): Data {
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(KEY);
@@ -72,20 +26,14 @@ function read(): Data {
   if (raw === cachedRaw) return cachedData;
   cachedRaw = raw;
   try {
-    const parsed = raw ? (JSON.parse(raw) as Partial<Data>) : {};
-    cachedData = {
-      profile: { ...EMPTY.profile, ...parsed.profile },
-      ratings: parsed.ratings ?? {},
-      collection: { ...EMPTY_COLLECTION, ...parsed.collection },
-    };
+    cachedData = raw ? normalize(JSON.parse(raw)) : EMPTY;
   } catch {
     cachedData = EMPTY;
   }
   return cachedData;
 }
 
-function write(update: (d: Data) => Data) {
-  const next = update(read());
+function save(next: Data) {
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
@@ -93,6 +41,25 @@ function write(update: (d: Data) => Data) {
     cachedData = next;
   }
   window.dispatchEvent(new Event(EVENT));
+}
+
+const changeListeners = new Set<(d: Data) => void>();
+
+/** Être prévenu de chaque modification faite par le joueur (sert à l'envoyer vers son compte). */
+export function onUserChange(listener: (d: Data) => void) {
+  changeListeners.add(listener);
+  return () => changeListeners.delete(listener);
+}
+
+function write(update: (d: Data) => Data) {
+  const next = update(read());
+  save(next);
+  changeListeners.forEach((l) => l(next));
+}
+
+/** Remplace toutes les données (après la synchronisation avec le compte). */
+export function replaceAll(next: Data) {
+  save(next);
 }
 
 function subscribe(callback: () => void) {
@@ -134,46 +101,72 @@ export function removeRating(id: number) {
   });
 }
 
+/** Stock de vitraux en ligne (quand tu es connecté) : combien il en reste et comment en réserver un. */
+export type VitrailStock = { left: number; claim: () => Promise<number | null> };
+
+let opening = false;
+
 /**
  * Ouvre un booster si tu en as un : le gratuit du jour d'abord, sinon un bonus gagné en notant des jeux.
  * Renvoie les 5 cartes tirées, ou null s'il n'y a plus de booster.
  */
-export function openBooster(pool: Card[]): PulledCard[] | null {
-  let pulled: PulledCard[] | null = null;
-  write((d) => {
-    const c = d.collection;
-    const today = localDay();
-    const packs = availablePacks(c, Object.keys(d.ratings).length, today);
-    if (packs.total === 0 || pool.length === 0) return d;
+export async function openBooster(pool: Card[], onlineStock?: VitrailStock): Promise<PulledCard[] | null> {
+  if (opening || pool.length === 0) return null;
+  const before = read();
+  const ratingsCount = Object.keys(before.ratings).length;
+  if (availablePacks(before.collection, ratingsCount).total === 0) return null;
 
-    const vitrailsLeft = Math.max(0, VITRAIL_TOTAL - c.vitrailsGiven);
-    const { cards, vitrailUsed } = openPack(pool, { vitrailsLeft, nextVitrailNumber: c.vitrailsGiven + 1 });
-    pulled = cards;
+  opening = true;
+  try {
+    const localLeft = Math.max(0, VITRAIL_TOTAL - before.collection.vitrailsGiven);
+    const { cards, vitrailUsed } = openPack(pool, {
+      vitrailsLeft: onlineStock ? onlineStock.left : localLeft,
+      nextVitrailNumber: before.collection.vitrailsGiven + 1,
+    });
 
-    const now = new Date().toISOString();
-    const owned = { ...c.cards };
-    const vitraux = [...c.vitraux];
-    for (const card of cards) {
-      const { vitrail, ...base } = card;
-      if (vitrail) {
-        vitraux.push({ card: base, number: vitrail, at: now });
+    let localVitrail = false;
+    if (vitrailUsed) {
+      const i = cards.findIndex((c) => c.vitrail);
+      if (onlineStock) {
+        // numéro réservé dans le stock partagé ; s'il n'en reste plus, la carte reste une carte normale
+        const n = await onlineStock.claim().catch(() => null);
+        if (n) cards[i] = { ...cards[i], vitrail: n };
+        else delete cards[i].vitrail;
       } else {
-        const prev = owned[base.id];
-        owned[base.id] = { card: base, count: (prev?.count ?? 0) + 1, firstAt: prev?.firstAt ?? now };
+        localVitrail = true;
       }
     }
 
-    return {
-      ...d,
-      collection: {
-        cards: owned,
-        vitraux,
-        lastFreeDay: packs.free ? today : c.lastFreeDay,
-        bonusClaimed: packs.free ? c.bonusClaimed : c.bonusClaimed + 1,
-        packsOpened: c.packsOpened + 1,
-        vitrailsGiven: c.vitrailsGiven + (vitrailUsed ? 1 : 0),
-      },
-    };
-  });
-  return pulled;
+    const now = new Date().toISOString();
+    write((d) => {
+      const c = d.collection;
+      const today = localDay();
+      const packs = availablePacks(c, Object.keys(d.ratings).length, today);
+      const owned = { ...c.cards };
+      const vitraux = [...c.vitraux];
+      for (const card of cards) {
+        const { vitrail, ...base } = card;
+        if (vitrail) {
+          vitraux.push({ card: base, number: vitrail, at: now });
+        } else {
+          const prev = owned[base.id];
+          owned[base.id] = { card: base, count: (prev?.count ?? 0) + 1, firstAt: prev?.firstAt ?? now };
+        }
+      }
+      return {
+        ...d,
+        collection: {
+          cards: owned,
+          vitraux,
+          lastFreeDay: packs.free ? today : c.lastFreeDay,
+          bonusClaimed: packs.free ? c.bonusClaimed : c.bonusClaimed + 1,
+          packsOpened: c.packsOpened + 1,
+          vitrailsGiven: c.vitrailsGiven + (localVitrail ? 1 : 0),
+        },
+      };
+    });
+    return cards;
+  } finally {
+    opening = false;
+  }
 }

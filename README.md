@@ -62,3 +62,23 @@ tri (populaires, mieux notés, plus récents) et pages de 24 jeux. Pratique pour
 - Chances par carte (`src/lib/cards.ts`) : Commune 88,96 %, Rare 9,7 %, Épique 1 %, Légendaire 0,32 %, Mythique 0,02 %.
 - Vitraux numérotés : environ 1 pack sur 500, à la place d'une carte, dans la limite de 300 exemplaires.
   Pour l'instant le stock est compté dans ton navigateur ; il sera partagé entre joueurs avec les comptes en ligne (étape 4).
+
+## Comptes : connexion par lien magique (Supabase)
+
+Sans configuration, le site marche sans comptes (tout reste dans le navigateur). Pour activer les comptes :
+
+1. Crée un projet gratuit sur https://supabase.com (région Europe).
+2. **SQL Editor** → nouvelle requête → colle le contenu de `supabase/schema.sql` → **Run**.
+3. **Authentication → URL Configuration** : Site URL `http://localhost:3000`, Redirect URLs `http://localhost:3000/**`
+   (ajoute aussi l'adresse du site une fois en ligne).
+4. **Project Settings → API** : copie la Project URL et la clé « anon public » (ou « Publishable key ») dans `.env.local`
+   (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`), puis relance le site.
+
+Fonctionnement :
+- `/connexion` : on entre son e-mail, on reçoit un lien, on clique : connecté. Le compte est créé à la première connexion.
+- Profil, notes et collection sont enregistrés sur le compte (table `user_data`, chacun ne voit que ses données)
+  et fusionnés avec ce qui était déjà dans le navigateur (`src/lib/sync.ts`).
+- Le stock des 300 vitraux numérotés devient partagé entre tous les joueurs (`claim_vitrail`) ;
+  sans être connecté, on ne peut pas gagner de vitrail.
+- Le serveur d'e-mails gratuit de Supabase n'envoie que quelques e-mails par heure : suffisant entre amis,
+  à remplacer par un vrai service d'e-mails (SMTP) avant d'ouvrir au public.
