@@ -1,41 +1,74 @@
+"use client";
+
+import { useRef } from "react";
 import { rarityInfo, type Card } from "@/lib/cards";
 
-/** Une carte à collectionner. `vitrail` = numéro du vitrail ; `hidden` = face cachée (avant révélation). */
+/**
+ * Une carte à collectionner, qui s'incline en 3D sous la souris avec un reflet holographique.
+ * `vitrail` = numéro du vitrail ; `hidden` = face cachée (avant révélation).
+ */
 export function TradingCard({
   card,
   vitrail,
   count,
   hidden = false,
   onReveal,
+  style,
 }: {
   card: Card;
   vitrail?: number;
   count?: number;
   hidden?: boolean;
   onReveal?: () => void;
+  style?: React.CSSProperties;
 }) {
+  const ref = useRef<HTMLButtonElement>(null);
   const r = rarityInfo(card.rarity);
   const year = card.released?.slice(0, 4);
   const className = ["tcard", `rarity-${card.rarity}`, vitrail ? "vitrail" : "", hidden ? "hidden" : "revealed"].join(" ");
 
+  // position de la souris sur la carte → inclinaison et reflet
+  const onMove = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el || hidden || e.pointerType === "touch") return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    el.style.setProperty("--mx", `${x * 100}%`);
+    el.style.setProperty("--my", `${y * 100}%`);
+    el.style.setProperty("--rx", `${(0.5 - y) * 16}deg`);
+    el.style.setProperty("--ry", `${(x - 0.5) * 20}deg`);
+    el.style.setProperty("--glare", "1");
+  };
+  const onLeave = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
+    el.style.setProperty("--glare", "0");
+  };
+
   return (
     <button
+      ref={ref}
       type="button"
       className={className}
-      style={{ "--rarity": r.color } as React.CSSProperties}
+      style={{ "--rarity": r.color, ...style } as React.CSSProperties}
       onClick={hidden ? onReveal : undefined}
+      onPointerMove={onMove}
+      onPointerLeave={onLeave}
       aria-label={hidden ? "Retourner la carte" : `${card.name}, ${r.label}${vitrail ? `, vitrail numéro ${vitrail}` : ""}`}
       tabIndex={hidden ? 0 : -1}
     >
       <span className="tcard-inner">
         <span className="tcard-back" aria-hidden="true">
-          <span>🎮</span>
+          <span className="tcard-back-logo">J</span>
         </span>
         <span className="tcard-front">
           <span className="tcard-art">
             {card.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={card.image} alt="" loading="lazy" />
+              <img src={card.image} alt="" loading="lazy" draggable={false} />
             ) : (
               <span className="tcard-placeholder">{card.name.slice(0, 1)}</span>
             )}
@@ -43,9 +76,11 @@ export function TradingCard({
           <span className="tcard-name">{card.name}</span>
           <span className="tcard-meta">
             <span className="tcard-rarity">{vitrail ? `Vitrail n° ${vitrail}` : r.label}</span>
-            {year && <span>{year}</span>}
+            {year && <span className="mono">{year}</span>}
           </span>
-          {count && count > 1 ? <span className="tcard-count">×{count}</span> : null}
+          {count && count > 1 ? <span className="tcard-count mono">×{count}</span> : null}
+          <span className="tcard-holo" aria-hidden="true" />
+          <span className="tcard-glare" aria-hidden="true" />
         </span>
       </span>
     </button>

@@ -10,6 +10,7 @@ import {
   VITRAIL_TOTAL,
   availablePacks,
   oddsTable,
+  rarityInfo,
   type Card,
   type PulledCard,
 } from "@/lib/cards";
@@ -27,6 +28,10 @@ export default function CardsPage() {
   const [error, setError] = useState(false);
   const [pulled, setPulled] = useState<PulledCard[] | null>(null);
   const [revealed, setRevealed] = useState<number>(0);
+  // « tearing » : le pack se déchire avant que les cartes n'apparaissent
+  const [tearing, setTearing] = useState(false);
+  // éclair de couleur quand une carte rare est retournée (la clé relance l'animation)
+  const [flash, setFlash] = useState<{ color: string; key: number } | null>(null);
   const cloud = useCloud();
   const [onlineLeft, setOnlineLeft] = useState<number | null>(null);
 
@@ -56,10 +61,25 @@ export default function CardsPage() {
       : undefined;
     const cards = await openBooster(pool.cards, stock);
     if (cards) {
-      setPulled(cards);
-      setRevealed(0);
+      setPulled(null);
+      setTearing(true);
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setTimeout(() => {
+        setTearing(false);
+        setPulled(cards);
+        setRevealed(0);
+      }, reduced ? 0 : 950);
       if (cards.some((c) => c.vitrail)) getVitrailsLeft().then(setOnlineLeft);
     }
+  };
+
+  const reveal = (count: number) => {
+    if (!pulled) return;
+    // la carte la plus rare parmi celles qu'on vient de retourner décide de la couleur de l'éclair
+    const newly = pulled.slice(revealed, count);
+    const best = newly.find((c) => c.vitrail) ?? [...newly].reverse().find((c) => !["commune", "rare"].includes(c.rarity));
+    if (best) setFlash({ color: best.vitrail ? "#f5c84b" : rarityInfo(best.rarity).color, key: Date.now() });
+    setRevealed(count);
   };
 
   const allRevealed = pulled !== null && revealed >= PACK_SIZE;
@@ -81,7 +101,25 @@ export default function CardsPage() {
       {error && <p className="notice">Impossible de charger les cartes pour le moment, réessaie dans un instant.</p>}
 
       <section className="booster-zone">
-        {pulled ? (
+        {flash && (
+          <div
+            key={flash.key}
+            className="rarity-flash"
+            style={{ "--flash": flash.color } as React.CSSProperties}
+            onAnimationEnd={() => setFlash(null)}
+            aria-hidden="true"
+          />
+        )}
+        {tearing ? (
+          <div className="booster-stage" aria-live="polite">
+            <div className="booster tearing" aria-hidden="true">
+              <span className="booster-top" />
+              <span className="booster-label">BOOSTER</span>
+              <small>{PACK_SIZE} cartes</small>
+            </div>
+            <span className="sr-only">Ouverture du booster…</span>
+          </div>
+        ) : pulled ? (
           <>
             <div className="pack-cards">
               {pulled.map((c, i) => (
@@ -90,7 +128,8 @@ export default function CardsPage() {
                   card={c}
                   vitrail={c.vitrail}
                   hidden={i >= revealed}
-                  onReveal={() => i === revealed && setRevealed(revealed + 1)}
+                  onReveal={() => i === revealed && reveal(revealed + 1)}
+                  style={{ animationDelay: `${i * 90}ms` }}
                 />
               ))}
             </div>
@@ -98,7 +137,7 @@ export default function CardsPage() {
               {!allRevealed ? (
                 <>
                   <span className="muted">Clique sur la carte suivante pour la retourner</span>
-                  <button type="button" className="button ghost" onClick={() => setRevealed(PACK_SIZE)}>
+                  <button type="button" className="button ghost" onClick={() => reveal(PACK_SIZE)}>
                     Tout retourner
                   </button>
                 </>
@@ -114,7 +153,8 @@ export default function CardsPage() {
         ) : (
           <div className="booster-closed">
             <div className={packs.total > 0 && pool ? "booster ready" : "booster"} aria-hidden="true">
-              <span>BOOSTER</span>
+              <span className="booster-top" />
+              <span className="booster-label">BOOSTER</span>
               <small>{PACK_SIZE} cartes</small>
             </div>
             <div>
