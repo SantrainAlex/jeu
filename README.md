@@ -28,3 +28,14 @@ Sans clé, le site affiche des jeux d'exemple. Pour les vraies sorties :
 - `src/app/page.tsx` : la page d'accueil (choix de la plateforme).
 - `src/app/plateforme/[slug]/page.tsx` : la page d'une plateforme avec les onglets jour / semaine / mois.
 - `src/components/GameCard.tsx` : la carte d'un jeu.
+
+## Étape 2 : profil, notes et recommandations
+
+- `/profil` : coche les plateformes que tu as ou qui t'intéressent ; elles passent en premier sur l'accueil.
+- Sur chaque jeu, clique sur les étoiles pour le noter (reclique sur la même étoile pour retirer la note).
+- `/mes-notes` : tes jeux notés et les genres que tu aimes.
+- `/recommandations` : des jeux des genres que tu notes le mieux, sur tes plateformes.
+
+Calcul des goûts : 5★ = +2, 4★ = +1, 3★ = 0, 2★ = -1, 1★ = -2 pour chaque genre du jeu noté.
+Pour l'instant, le profil et les notes sont enregistrés dans ton navigateur (`src/lib/store.ts`) ;
+on passera à de vrais comptes en ligne quand le site sera ouvert à tes amis.
