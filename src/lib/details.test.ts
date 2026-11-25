@@ -109,6 +109,7 @@ describe("combineDetails", () => {
   const both = combineDetails(rawg, igdb);
   it("garde l'identifiant de l'adresse et réunit les deux sources", () => {
     expect(both.id).toBe(3498);
+    expect(both.igdbId).toBe(1020); // pour trouver les lives Twitch
     expect(both.sources).toEqual(["rawg", "igdb"]);
     expect(both.cover).toBe(igdb.cover);
     expect(both.press).toBe(92);

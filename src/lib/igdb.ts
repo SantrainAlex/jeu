@@ -26,7 +26,8 @@ export function hasIgdb() {
 
 let token: { value: string; expiresAt: number } | null = null;
 
-async function getToken(): Promise<string> {
+/** Jeton d'accès Twitch : il sert pour IGDB et pour l'API des lives Twitch (mêmes identifiants). */
+export async function getToken(): Promise<string> {
   if (token && token.expiresAt > Date.now() + 60_000) return token.value;
   const params = new URLSearchParams({
     client_id: process.env.IGDB_CLIENT_ID ?? "",
@@ -187,6 +188,7 @@ export function igdbToDetails(g: IgdbDetail): GameDetails {
   const shots = [...(g.screenshots ?? []), ...(g.artworks ?? [])];
   return {
     ...base,
+    igdbId: g.id,
     cover: g.cover ? img("t_cover_big", g.cover.image_id) : null,
     image: g.artworks?.[0]
       ? img("t_1080p", g.artworks[0].image_id)
