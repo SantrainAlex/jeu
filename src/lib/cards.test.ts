@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CARD_POOL_SIZE,
   RARITIES,
   VITRAIL_CHANCE,
   availablePacks,
@@ -45,7 +46,7 @@ describe("chances", () => {
   });
 });
 
-const pool: Card[] = Array.from({ length: 150 }, (_, i) => ({
+const pool: Card[] = Array.from({ length: CARD_POOL_SIZE }, (_, i) => ({
   id: i + 1,
   name: `Jeu ${i + 1}`,
   image: null,
@@ -114,5 +115,16 @@ describe("boosters disponibles", () => {
     s = consumePack(s, 3, T0)!;
     expect(s.bonusClaimed).toBe(1);
     expect(consumePack(s, 3, T0)).toBeNull();
+  });
+});
+
+describe("rareté selon la popularité (1 000 cartes)", () => {
+  it("répartit les paliers : 20 Mythiques, 60 Légendaires, 120 Épiques, 240 Rares, 560 Communes", () => {
+    const counts: Record<string, number> = {};
+    for (let rank = 1; rank <= 1000; rank++) {
+      const r = rarityForRank(rank);
+      counts[r] = (counts[r] ?? 0) + 1;
+    }
+    expect(counts).toEqual({ mythique: 20, legendaire: 60, epique: 120, rare: 240, commune: 560 });
   });
 });
