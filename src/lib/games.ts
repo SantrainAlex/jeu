@@ -1,8 +1,9 @@
-import { demoCatalog, demoCatalogPage, demoReleases } from "./demo";
-import { hasIgdb, igdbByGenres, igdbCatalog, igdbReleases } from "./igdb";
+import { combineDetails, parseGameKey, type GameDetails } from "./details";
+import { demoCatalog, demoCatalogPage, demoDetails, demoReleases } from "./demo";
+import { hasIgdb, igdbByGenres, igdbCatalog, igdbDetails, igdbFind, igdbReleases } from "./igdb";
 import { mergeGames } from "./merge";
 import { PERIODS, type Period, type Platform } from "./platforms";
-import { hasRawg, rawgByGenres, rawgCatalog, rawgReleases, type CatalogSort } from "./rawg";
+import { hasRawg, rawgByGenres, rawgCatalog, rawgDetails, rawgFind, rawgReleases, type CatalogSort } from "./rawg";
 import type { Game, GamesResult, Source } from "./types";
 
 export type { Game, GamesResult, Genre } from "./types";
@@ -113,4 +114,42 @@ export async function getCatalog(
     hasIgdb() ? () => igdbCatalog(platform.igdbIds, o).then(track) : null,
   );
   return { ...result, hasMore: full };
+}
+
+/** Attend une promesse au plus `ms` millisecondes ; au-delà (ou en cas d'erreur) renvoie null. */
+function atMost<T>(promise: Promise<T | null>, ms: number): Promise<T | null> {
+  return Promise.race([promise.catch(() => null), sleep(ms).then(() => null)]);
+}
+
+/**
+ * La fiche d'un jeu, à partir de son adresse (/jeu/123 ou /jeu/igdb-123).
+ * On lit la fiche chez la source de l'adresse, puis on cherche le même jeu chez l'autre source
+ * pour compléter (vidéos YouTube d'IGDB, captures et infos de RAWG…). null = jeu introuvable.
+ */
+export async function getGameDetails(key: string): Promise<{ details: GameDetails; demo: boolean } | null> {
+  const parsed = parseGameKey(key);
+  if (!parsed) return null;
+  if (!hasRawg() && !hasIgdb()) {
+    const details = parsed.source === "rawg" ? demoDetails(parsed.id) : null;
+    return details && { details, demo: true };
+  }
+
+  if (parsed.source === "rawg") {
+    if (!hasRawg()) return null;
+    const main = await rawgDetails(parsed.id);
+    if (!main) return null;
+    const other = hasIgdb() ? await atMost(igdbFind(main.name, main.released), 4000) : null;
+    return { details: combineDetails(main, other), demo: false };
+  }
+
+  if (!hasIgdb()) return null;
+  const main = await igdbDetails(parsed.id);
+  if (!main) return null;
+  const other = hasRawg()
+    ? await atMost(
+        rawgFind(main.name, main.released).then((id) => (id ? rawgDetails(id) : null)),
+        4000,
+      )
+    : null;
+  return { details: combineDetails(main, other), demo: false };
 }

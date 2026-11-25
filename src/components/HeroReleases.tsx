@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { gameHref } from "@/lib/details";
 import { getNewGames } from "@/lib/games";
 import { mergeGames } from "@/lib/merge";
 import { getPlatform } from "@/lib/platforms";
@@ -19,7 +20,7 @@ export async function HeroReleases() {
 
   return (
     <section className="hero" aria-label="Les sorties de la semaine">
-      <article className="hero-main">
+      <Link href={gameHref(main)} className="hero-main">
         {main.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={main.image} alt="" />
@@ -34,7 +35,7 @@ export async function HeroReleases() {
             {main.genres.length > 0 && ` · ${main.genres.slice(0, 2).map((g) => g.name).join(", ")}`}
           </p>
         </div>
-      </article>
+      </Link>
       <ol className="hero-side">
         {rest.map((g) => (
           <li key={g.id} className="hero-mini">
@@ -47,7 +48,11 @@ export async function HeroReleases() {
               )}
             </span>
             <span className="hero-info">
-              <h3>{g.name}</h3>
+              <h3>
+                <Link href={gameHref(g)} className="card-link">
+                  {g.name}
+                </Link>
+              </h3>
               <span className="mono">{date(g.released)}</span>
             </span>
           </li>

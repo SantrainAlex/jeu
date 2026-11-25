@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { gameHref } from "@/lib/details";
 import type { Game } from "@/lib/types";
 import { RatingStars } from "./RatingStars";
 
@@ -16,7 +18,12 @@ export function GameCard({ game, extra }: { game: Game; extra?: React.ReactNode 
         )}
       </div>
       <div className="game-body">
-        <h3>{game.name}</h3>
+        <h3>
+          {/* toute la carte est cliquable (voir .card-link), sauf les étoiles qui restent au-dessus */}
+          <Link href={gameHref(game)} className="card-link">
+            {game.name}
+          </Link>
+        </h3>
         <p className="muted">Sortie le {date}</p>
         <div className="tags">
           {game.genres.slice(0, 3).map((g) => (
