@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0b0f">
+<title>Pas de connexion — Jeu</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0a0b0f; color: #f4f5f7;
+         font-family: system-ui, sans-serif; text-align: center; padding: 1.5rem; box-sizing: border-box; }
+  .mark { width: 72px; height: 72px; border-radius: 18px; margin: 0 auto; display: grid; place-items: center;
+          background: linear-gradient(135deg, #8b6cff, #4cc9f0); font-size: 2.4rem; font-weight: 700; }
+  h1 { font-size: 1.4rem; margin: 1.2rem 0 0.4rem; }
+  p { color: rgba(244,245,247,.6); margin: 0 0 1.5rem; }
+  button { background: #8b6cff; color: #fff; border: 0; border-radius: 999px; padding: .7rem 1.4rem; font-size: 1rem; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="mark" aria-hidden="true">J</div>
+    <h1>Pas de connexion</h1>
+    <p>Vérifie ton réseau, puis réessaie.</p>
+    <button onclick="location.reload()">Réessayer</button>
+  </div>
+</body>
+</html>
