@@ -126,3 +126,10 @@ h2 { font-size: 1.2rem; margin: 1.5rem 0 0; }
 .chip.active { border-color: var(--primary); color: var(--text); }
 .pager { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; }
 .pager a { background: var(--surface); padding: .5rem 1rem; border-radius: 999px; }
+
+/* ---------- Chargement ---------- */
+.line { height: .8rem; border-radius: 6px; background: var(--surface-2); margin-bottom: .55rem; }
+.skeleton-title { width: 260px; height: 2.2rem; margin: 2.2rem 0 .5rem; }
+.skeleton .game-image, .line { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .skeleton .game-image, .line { animation: none; } }

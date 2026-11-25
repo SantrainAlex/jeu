@@ -15,16 +15,38 @@ function dateRange(period: Period) {
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 
+/** Temps maximum d'attente d'une source, en millisecondes. */
+const MAX_WAIT = 5000;
+/** Une fois qu'une source a répondu, temps supplémentaire laissé à l'autre. */
+const GRACE = 1500;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 /**
  * Interroge RAWG et IGDB en même temps, puis fusionne sans doublons.
- * Si une source tombe en panne, on affiche quand même les résultats de l'autre.
+ * - Si une source tombe en panne, on affiche quand même les résultats de l'autre.
+ * - Si une source est trop lente, on ne l'attend pas : au plus 5 s, et seulement 1,5 s de plus
+ *   que la première source qui a répondu. (Sa réponse finit quand même dans le cache pour la prochaine fois.)
  */
 async function fromBothSources(rawg: (() => Promise<Game[]>) | null, igdb: (() => Promise<Game[]>) | null) {
   const calls: [Source, () => Promise<Game[]>][] = [];
   if (rawg) calls.push(["rawg", rawg]);
   if (igdb) calls.push(["igdb", igdb]);
 
-  const settled = await Promise.allSettled(calls.map(([, call]) => call()));
+  let markFirst: () => void = () => {};
+  const firstAnswered = new Promise<void>((resolve) => (markFirst = resolve));
+
+  const settled = await Promise.allSettled(
+    calls.map(([source, call]) => {
+      const request = call();
+      request.then(markFirst, () => {});
+      const limit = Promise.race([sleep(MAX_WAIT), firstAnswered.then(() => sleep(GRACE))]).then(() => {
+        throw new Error(`${source} trop lent, ignoré pour cette fois`);
+      });
+      return Promise.race([request, limit]);
+    }),
+  );
+
   const ok: Source[] = [];
   const lists: Game[][] = [];
   settled.forEach((r, i) => {
@@ -32,7 +54,7 @@ async function fromBothSources(rawg: (() => Promise<Game[]>) | null, igdb: (() =
       ok.push(calls[i][0]);
       lists.push(r.value);
     } else {
-      console.error(`[jeu] ${calls[i][0]} indisponible :`, r.reason);
+      console.error(`[jeu] ${calls[i][0]} indisponible :`, (r.reason as Error).message);
     }
   });
   if (ok.length === 0) throw new Error("Aucune source de jeux ne répond pour le moment.");
