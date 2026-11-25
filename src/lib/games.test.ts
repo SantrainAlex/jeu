@@ -14,18 +14,20 @@ const igdbResponse = [
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+async function defaultFetch(url: string, _init?: RequestInit) {
   const body = url.includes("id.twitch.tv")
     ? { access_token: "t", expires_in: 3600 }
     : url.includes("igdb.com")
       ? igdbResponse
       : rawgResponse;
   return new Response(JSON.stringify(body), { status: 200 });
-});
+}
+const fetchMock = vi.fn(defaultFetch);
 
 beforeEach(() => {
   vi.resetModules();
-  fetchMock.mockClear();
+  fetchMock.mockReset();
+  fetchMock.mockImplementation(defaultFetch);
   vi.stubGlobal("fetch", fetchMock);
   vi.stubEnv("RAWG_API_KEY", "k");
   vi.stubEnv("IGDB_CLIENT_ID", "id");
@@ -89,5 +91,23 @@ describe("getCatalog", () => {
     const igdbBody = String(fetchMock.mock.calls.find(([u]) => String(u).includes("api.igdb.com"))![1]?.body);
     expect(igdbBody).toContain('search "Mario  Kart";');
     expect(igdbBody).toContain("offset 24;");
+  });
+});
+
+describe("sources lentes", () => {
+  it("n'attend pas IGDB plus de 1,5 s après la réponse de RAWG", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(async (url: string) => {
+      if (String(url).includes("rawg.io")) return new Response(JSON.stringify(rawgResponse));
+      return new Promise<Response>(() => {}); // IGDB ne répond jamais
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { getNewGames } = await import("./games");
+    const pending = getNewGames(getPlatform("pc")!, "jour");
+    await vi.advanceTimersByTimeAsync(1600);
+    const result = await pending;
+    expect(result.sources).toEqual(["rawg"]);
+    expect(result.games).toHaveLength(2);
+    vi.useRealTimers();
   });
 });
