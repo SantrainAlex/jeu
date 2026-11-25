@@ -120,3 +120,10 @@ export function igdbCatalog(
   }[opts.sort];
   return query(`${sort} ${paging}`);
 }
+
+/** Les jeux les plus populaires toutes plateformes confondues (pour les cartes à collectionner). */
+export function igdbPopular(offset: number) {
+  return query(
+    `where version_parent = null & total_rating_count >= 50; sort total_rating_count desc; limit 50; offset ${offset};`,
+  );
+}

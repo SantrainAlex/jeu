@@ -69,3 +69,8 @@ export function rawgCatalog(platformIds: number[], opts: { query?: string; sort:
   }
   return query(params);
 }
+
+/** Les jeux les plus populaires toutes plateformes confondues (pour les cartes à collectionner). */
+export function rawgPopular(page: number) {
+  return query({ ordering: "-added", page: String(page), page_size: "40" });
+}

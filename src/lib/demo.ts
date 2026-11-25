@@ -51,3 +51,11 @@ export function demoCatalogPage(opts: { query?: string; sort: "populaires" | "no
   const start = (opts.page - 1) * opts.pageSize;
   return { games: all.slice(start, start + opts.pageSize), hasMore: start + opts.pageSize < all.length };
 }
+
+/** 200 jeux d'exemple aux noms tous différents, pour les cartes. */
+export function demoCardGames(): Game[] {
+  return Array.from({ length: 200 }, (_, i) => {
+    const base = `${WORDS[0][i % 10]} ${WORDS[1][Math.floor(i / 10) % 10]}`;
+    return demoGame(700 + i * 7, i, i >= 100 ? `${base} II` : base, `${2005 + (i % 20)}-05-10`);
+  });
+}
