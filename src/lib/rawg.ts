@@ -149,6 +149,7 @@ export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovi
   return {
     id: g.id,
     slug: g.slug,
+    igdbId: null,
     name: g.name,
     released: g.released,
     image: g.background_image,

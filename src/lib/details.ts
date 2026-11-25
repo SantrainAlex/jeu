@@ -13,6 +13,8 @@ export type GameDetails = {
   /** identifiant utilisé pour les notes (le même que dans les listes) */
   id: number;
   slug: string;
+  /** identifiant IGDB du jeu (sert à trouver ses lives Twitch), null si inconnu */
+  igdbId: number | null;
   name: string;
   released: string | null;
   /** grande image de fond */
@@ -96,6 +98,7 @@ export function combineDetails(a: GameDetails, b: GameDetails | null): GameDetai
   videos.sort((x, y) => Number(y.kind === "youtube") - Number(x.kind === "youtube"));
   return {
     ...a,
+    igdbId: a.igdbId ?? b.igdbId,
     released: dates[0] ?? null,
     image: a.image ?? b.image,
     cover: a.cover ?? b.cover,

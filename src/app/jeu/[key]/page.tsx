@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BackButton } from "@/components/BackButton";
+import { LiveStreams } from "@/components/LiveStreams";
 import { RatingStars } from "@/components/RatingStars";
 import { ReadMore } from "@/components/ReadMore";
 import { ScreenshotGallery } from "@/components/ScreenshotGallery";
@@ -95,6 +96,7 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
               <VideoPlayer videos={g.videos} title={g.name} />
             </section>
           )}
+          {!demo && <LiveStreams name={g.name} igdbId={g.igdbId} />}
           {g.screenshots.length > 0 && (
             <section>
               <h2>

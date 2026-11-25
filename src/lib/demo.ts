@@ -70,6 +70,7 @@ export function demoDetails(id: number): GameDetails {
   return {
     ...g,
     id,
+    igdbId: null,
     cover: null,
     ratingCount: 120,
     press: null,
