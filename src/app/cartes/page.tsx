@@ -18,8 +18,9 @@ import {
   type Card,
   type PulledCard,
 } from "@/lib/cards";
-import { cloudEnabled, getVitrailStock, getVitrailsLeft, useCloud } from "@/lib/cloud";
-import { openBooster, useStore } from "@/lib/store";
+import { runCardAction } from "@/lib/cardClient";
+import { cloudEnabled, getVitrailsLeft, useCloud } from "@/lib/cloud";
+import { useStore } from "@/lib/store";
 
 const pct = (x: number) =>
   x > 0.999
@@ -39,6 +40,8 @@ export default function CardsPage() {
   const [flash, setFlash] = useState<{ color: string; key: number } | null>(null);
   const cloud = useCloud();
   const [onlineLeft, setOnlineLeft] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     fetch("/api/cartes")
@@ -64,14 +67,17 @@ export default function CardsPage() {
   const nextBonusIn = RATINGS_PER_BONUS - (ratingsCount % RATINGS_PER_BONUS);
   const vitrailsLeft = cloudEnabled ? (onlineLeft ?? VITRAIL_TOTAL) : Math.max(0, VITRAIL_TOTAL - collection.vitrailsGiven);
   const signedOutWithAccounts = cloudEnabled && cloud.status !== "signedIn";
+  const canOpen = ready && Boolean(pool) && packs.total > 0 && !signedOutWithAccounts && !busy;
 
   const open = async () => {
-    if (!pool) return;
-    // connecté : stock en ligne partagé ; comptes activés mais pas connecté : pas de vitrail possible
-    const stock = cloudEnabled
-      ? ((await getVitrailStock()) ?? { left: 0, claim: async () => null })
-      : undefined;
-    const cards = await openBooster(pool.cards, stock);
+    if (!pool || busy) return;
+    setActionError(null);
+    setBusy(true);
+    // avec les comptes, c'est le serveur qui vérifie la réserve et tire les cartes
+    const res = await runCardAction({ type: "booster" }, pool.cards);
+    setBusy(false);
+    if ("error" in res) setActionError(res.error);
+    const cards = "pulled" in res ? res.pulled : undefined;
     if (cards) {
       setPulled(null);
       setTearing(true);
@@ -81,7 +87,7 @@ export default function CardsPage() {
         setPulled(cards);
         setRevealed(0);
       }, reduced ? 0 : 950);
-      if (cards.some((c) => c.vitrail)) getVitrailsLeft().then(setOnlineLeft);
+      if ("vitrailsLeft" in res && typeof res.vitrailsLeft === "number") setOnlineLeft(res.vitrailsLeft);
     }
   };
 
@@ -112,6 +118,7 @@ export default function CardsPage() {
         </p>
       )}
       {error && <p className="notice">Impossible de charger les cartes pour le moment, réessaie dans un instant.</p>}
+      {actionError && <p className="notice">{actionError}</p>}
 
       <section className="booster-zone">
         {flash && (
@@ -160,7 +167,7 @@ export default function CardsPage() {
               ) : (
                 <>
                   {packs.total > 0 ? (
-                    <button type="button" className="button big" onClick={open}>
+                    <button type="button" className="button big" disabled={!canOpen} onClick={open}>
                       Ouvrir un autre booster ({packs.total})
                     </button>
                   ) : (
@@ -182,9 +189,14 @@ export default function CardsPage() {
               <p className="booster-count">
                 {!ready ? "…" : packs.total > 0 ? `${packs.total} booster${packs.total > 1 ? "s" : ""} à ouvrir` : "Plus de booster pour l'instant"}
               </p>
-              <button type="button" className="button big" disabled={!ready || !pool || packs.total === 0} onClick={open}>
-                {pool || error ? "Ouvrir un booster" : "Préparation des cartes…"}
+              <button type="button" className="button big" disabled={!canOpen} onClick={open}>
+                {busy ? "Ouverture…" : pool || error ? "Ouvrir un booster" : "Préparation des cartes…"}
               </button>
+              {signedOutWithAccounts && cloud.status === "signedOut" && (
+                <p className="muted small">
+                  <Link href="/connexion">Connecte-toi</Link> pour ouvrir tes boosters : ta collection est gardée sur ton compte.
+                </p>
+              )}
               {ready && <Recharge timed={packs.timed} nextIn={packs.nextIn} />}
             </div>
           </div>

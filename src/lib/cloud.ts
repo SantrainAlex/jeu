@@ -7,8 +7,9 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { useSyncExternalStore } from "react";
-import { EMPTY, isEmpty, normalize, type Data } from "./data";
-import { onUserChange, read, replaceAll, type VitrailStock } from "./store";
+import type { CardAction, CardActionResult } from "./cardRules";
+import { EMPTY, EMPTY_COLLECTION, isEmpty, normalize, type Collection, type Data } from "./data";
+import { onUserChange, read, replaceAll, setCollection } from "./store";
 import { mergeData } from "./sync";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -59,11 +60,20 @@ async function pull(userId: string): Promise<Data | null> {
   return data ? normalize(data.data) : null;
 }
 
+/** La collection de cartes du compte (lecture seule : seul le serveur du site peut la modifier). */
+async function pullCards(userId: string): Promise<Collection> {
+  const { data, error } = await supabase()!.from("user_cards").select("collection").eq("user_id", userId).maybeSingle();
+  if (error) throw error;
+  return data ? normalize({ collection: data.collection }).collection : EMPTY_COLLECTION;
+}
+
+/** Envoie le profil et les notes. La collection n'est jamais envoyée : le compte la refuserait de toute façon. */
 async function push(userId: string, data: Data) {
   setState({ sync: "saving" });
+  const { profile, ratings } = data;
   const { error } = await supabase()!
     .from("user_data")
-    .upsert({ user_id: userId, data, updated_at: new Date().toISOString() });
+    .upsert({ user_id: userId, data: { profile, ratings }, updated_at: new Date().toISOString() });
   setState({ sync: error ? "error" : "saved" });
   if (error) console.error("[jeu] sauvegarde du compte impossible :", error.message);
 }
@@ -78,12 +88,23 @@ function schedulePush() {
   pushTimer = setTimeout(() => push(userId, read()), 800);
 }
 
-/** À la connexion : on fusionne ce navigateur avec le compte, puis on renvoie le résultat. */
+/** Envoie tout de suite les modifications en attente (ex. une note juste avant d'ouvrir un booster bonus). */
+async function flushPush() {
+  if (!pushTimer || !state.userId) return;
+  clearTimeout(pushTimer);
+  pushTimer = null;
+  await push(state.userId, read());
+}
+
+/**
+ * À la connexion : on fusionne le profil et les notes de ce navigateur avec le compte.
+ * Les cartes, elles, viennent uniquement du compte : celles gagnées sans être connecté ne sont pas reprises.
+ */
 async function syncOnSignIn(userId: string) {
   try {
-    const cloud = await pull(userId);
+    const [cloud, cards] = await Promise.all([pull(userId), pullCards(userId)]);
     const local = read();
-    const merged = cloud ? mergeData(local, cloud) : local;
+    const merged = { ...(cloud ? mergeData(local, cloud) : local), collection: cards };
     replaceAll(merged);
     if (!cloud || !isEmpty(local)) await push(userId, merged);
     else setState({ sync: "saved" });
@@ -135,26 +156,40 @@ export async function sendMagicLink(email: string): Promise<string | null> {
 }
 
 export async function signOut() {
-  if (pushTimer && state.userId) {
-    clearTimeout(pushTimer);
-    await push(state.userId, read());
-  }
+  await flushPush();
   await supabase()?.auth.signOut();
 }
 
-/** Le stock partagé de vitraux, si tu es connecté. */
-export async function getVitrailStock(): Promise<VitrailStock | null> {
+export type ServerCardResult = (CardActionResult & { vitrailsLeft?: number }) | { error: string };
+
+/**
+ * Demande au serveur d'ouvrir un booster ou de faire une action de l'atelier.
+ * C'est le serveur qui vérifie les règles, tire les cartes et enregistre ta collection ; on affiche ensuite sa réponse.
+ */
+export async function serverCardAction(action: CardAction): Promise<ServerCardResult> {
   const sb = supabase();
-  if (!sb || state.status !== "signedIn") return null;
-  const { data, error } = await sb.from("vitrail_stock").select("total, given").eq("id", 1).single();
-  if (error || !data) return null;
-  return {
-    left: Math.max(0, data.total - data.given),
-    claim: async () => {
-      const { data: n, error: e } = await sb.rpc("claim_vitrail");
-      return e ? null : ((n as number | null) ?? null);
-    },
-  };
+  if (!sb) return { error: "Les comptes ne sont pas configurés." };
+  const { data } = await sb.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { error: "Connecte-toi pour utiliser tes cartes." };
+  await flushPush();
+  try {
+    const res = await fetch("/api/cartes/action", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(action),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      // le serveur a refusé : on remet la collection à jour depuis le compte, au cas où elle aurait changé ailleurs
+      if (state.userId) pullCards(state.userId).then(setCollection).catch(() => {});
+      return { error: body.error ?? "Action impossible pour le moment." };
+    }
+    setCollection(body.collection);
+    return body;
+  } catch {
+    return { error: "Impossible de joindre le serveur, vérifie ta connexion internet." };
+  }
 }
 
 /** Nombre de vitraux restants dans le stock partagé (visible même sans être connecté). */

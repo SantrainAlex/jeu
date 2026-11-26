@@ -72,12 +72,18 @@ Sans configuration, le site marche sans comptes (tout reste dans le navigateur).
 3. **Authentication → URL Configuration** : Site URL `http://localhost:3000`, Redirect URLs `http://localhost:3000/**`
    (ajoute aussi l'adresse du site une fois en ligne).
 4. **Project Settings → API** : copie la Project URL et la clé « anon public » (ou « Publishable key ») dans `.env.local`
-   (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`), puis relance le site.
+   (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`), ainsi que la clé secrète « service_role »
+   (ou « Secret key ») dans `SUPABASE_SERVICE_ROLE_KEY`, puis relance le site. Sur Vercel, ajoute les mêmes variables.
 
 Fonctionnement :
 - `/connexion` : on entre son e-mail, on reçoit un lien, on clique : connecté. Le compte est créé à la première connexion.
 - Profil, notes et collection sont enregistrés sur le compte (table `user_data`, chacun ne voit que ses données)
   et fusionnés avec ce qui était déjà dans le navigateur (`src/lib/sync.ts`).
+- **Anti-triche des cartes** : avec les comptes, la collection est dans la table `user_cards`, que chaque joueur peut
+  lire mais pas modifier. Ouvrir un booster et toutes les actions de l'atelier passent par `POST /api/cartes/action` :
+  le serveur vérifie la connexion, la réserve de boosters (avec sa propre horloge), les doublons et les pièces, tire
+  lui-même les cartes et enregistre le résultat. Deux demandes envoyées en même temps ne peuvent pas passer toutes les
+  deux (numéro de version). Sans être connecté, on ne peut pas ouvrir de booster.
 - Le stock des 300 vitraux numérotés devient partagé entre tous les joueurs (`claim_vitrail`) ;
   sans être connecté, on ne peut pas gagner de vitrail.
 - Le serveur d'e-mails gratuit de Supabase n'envoie que quelques e-mails par heure : suffisant entre amis,

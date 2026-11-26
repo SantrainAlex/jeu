@@ -7,20 +7,19 @@ import { useCardViewer } from "@/components/CardViewer";
 import { TradingCard } from "@/components/TradingCard";
 import { RARITIES, rarityInfo, type Card, type Rarity } from "@/lib/cards";
 import { coins, copies } from "@/lib/data";
-import { updateCollection, useStore } from "@/lib/store";
+import { runCardAction } from "@/lib/cardClient";
+import type { CardAction, CardActionResult } from "@/lib/cardRules";
+import { cloudEnabled, useCloud } from "@/lib/cloud";
+import { useStore } from "@/lib/store";
 import {
   CRAFT_PRICE,
   FINISHES,
   RECYCLE_VALUE,
   TRADE_UP_COUNT,
-  craft,
   nextFinish,
   nextRarity,
-  recycleAll,
   recyclePreview,
-  tradeUp,
   tradeUpAvailable,
-  upgrade,
 } from "@/lib/workshop";
 
 const KEEP_OPTIONS = [
@@ -76,7 +75,30 @@ export default function WorkshopPage() {
     setConfirming(false);
   };
 
+  const cloud = useCloud();
+  const [busy, setBusy] = useState(false);
+  /** Envoie l'action (au serveur quand les comptes sont activés) et affiche le résultat ou l'erreur. */
+  const act = async (action: CardAction, success: (r: CardActionResult) => string) => {
+    if (busy) return;
+    setBusy(true);
+    const res = await runCardAction(action, pool ?? []);
+    setBusy(false);
+    if ("error" in res) done(res.error);
+    else done(success(res));
+  };
+
   if (!ready) return <h1>Atelier</h1>;
+  if (cloudEnabled && cloud.status === "signedOut") {
+    return (
+      <>
+        <h1>Atelier</h1>
+        <CardTabs active="atelier" />
+        <p className="notice">
+          <Link href="/connexion">Connecte-toi</Link> pour utiliser l&apos;atelier : ta collection est gardée sur ton compte.
+        </p>
+      </>
+    );
+  }
 
   return (
     <>
@@ -151,10 +173,12 @@ export default function WorkshopPage() {
             <button
               type="button"
               className="button"
-              onClick={() => {
-                const r = updateCollection((c) => recycleAll(c, keep));
-                if (r) done(`Recyclage terminé : ${plural(r.cards, "carte")} → +${plural(r.coins, "pièce")}.`);
-              }}
+              disabled={busy}
+              onClick={() =>
+                act({ type: "recycleAll", keep }, (r) =>
+                  `Recyclage terminé : ${plural(r.cards ?? 0, "carte")} → +${plural(r.coins ?? 0, "pièce")}.`,
+                )
+              }
             >
               Confirmer : {plural(preview.cards, "carte")} → +{n(preview.coins)}
             </button>
@@ -192,15 +216,14 @@ export default function WorkshopPage() {
                 <button
                   type="button"
                   className="button ghost"
-                  disabled={!pool || have < TRADE_UP_COUNT}
-                  onClick={() => {
-                    const res = updateCollection((c) => tradeUp(c, r.id, pool ?? []));
-                    if (res) {
-                      setGift(res.card);
-                      viewer.open({ card: res.card, title: "Échange réussi ! Tu gagnes :", reveal: true });
-                      done(`Échange réussi : tu obtiens ${res.card.name} (${to.label}) !`);
-                    }
-                  }}
+                  disabled={!pool || busy || have < TRADE_UP_COUNT}
+                  onClick={() =>
+                    act({ type: "tradeUp", rarity: r.id }, (res) => {
+                      setGift(res.card ?? null);
+                      if (res.card) viewer.open({ card: res.card, title: "Échange réussi ! Tu gagnes :", reveal: true });
+                      return `Échange réussi : tu obtiens ${res.card?.name} (${to.label}) !`;
+                    })
+                  }
                 >
                   Échanger
                 </button>
@@ -265,13 +288,13 @@ export default function WorkshopPage() {
                   <button
                     type="button"
                     className="button ghost"
-                    disabled={wallet < price}
-                    onClick={() => {
-                      if (updateCollection((col) => craft(col, c))) {
-                        done(`${c.name} a rejoint ton album !`);
+                    disabled={busy || wallet < price}
+                    onClick={() =>
+                      act({ type: "craft", id: c.id }, () => {
                         viewer.open({ card: c, title: "Carte fabriquée !", reveal: true });
-                      }
-                    }}
+                        return `${c.name} a rejoint ton album !`;
+                      })
+                    }
                   >
                     Fabriquer · <span className="mono">{n(price)}</span>
                   </button>
@@ -306,9 +329,8 @@ export default function WorkshopPage() {
                 <button
                   type="button"
                   className="button ghost"
-                  onClick={() => {
-                    if (updateCollection((c) => upgrade(c, o.card.id))) done(`${o.card.name} passe en ${f!.label} !`);
-                  }}
+                  disabled={busy}
+                  onClick={() => act({ type: "upgrade", id: o.card.id }, () => `${o.card.name} passe en ${f!.label} !`)}
                 >
                   Passer en {f!.label} ({f!.cost} doublons)
                 </button>
