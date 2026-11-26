@@ -129,6 +129,23 @@ export function igdbCatalog(
   return query(`${sort} ${paging}`);
 }
 
+/**
+ * Jeux sortis (ou annoncés) sur les plateformes `on` mais sur aucune des plateformes `notOn`,
+ * d'après IGDB. Ex. les jeux Switch 2 qui n'existent pas sur Switch. Mis en cache 1 jour.
+ */
+export async function igdbOnlyOn(on: number[], notOn: number[]): Promise<Game[]> {
+  const where = `fields name,slug,first_release_date,platforms; where platforms = (${on.join(",")}) & version_parent = null;`;
+  const lists = await Promise.all([
+    post<IgdbGame & { platforms?: number[] }>(`${where} sort first_release_date desc; limit 500;`, 86400),
+    post<IgdbGame & { platforms?: number[] }>(`${where} sort hypes desc; limit 500;`, 86400),
+  ]);
+  const seen = new Set<number>();
+  return lists
+    .flat()
+    .filter((g) => !seen.has(g.id) && seen.add(g.id) && !(g.platforms ?? []).some((id) => notOn.includes(id)))
+    .map(toGame);
+}
+
 /** Les jeux les plus populaires toutes plateformes confondues (pour les cartes à collectionner). */
 export function igdbPopular(offset: number) {
   return query(

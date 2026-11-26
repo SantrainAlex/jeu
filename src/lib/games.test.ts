@@ -13,8 +13,14 @@ const igdbResponse = [
   { id: 901, slug: "igdb-only", name: "Igdb Only", first_release_date: 1749081600, genres: [{ id: 31, name: "Adventure" }] },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function defaultFetch(url: string, _init?: RequestInit) {
+/** La requête IGDB « jeux sortis seulement sur une autre console » (filtre de la page Switch). */
+const isOnlyOnQuery = (init?: RequestInit) => String(init?.body).startsWith("fields name,slug,first_release_date,platforms;");
+/** Les appels IGDB qui cherchent vraiment des jeux à afficher. */
+const igdbGameCalls = () =>
+  fetchMock.mock.calls.filter(([u, i]) => String(u).includes("api.igdb.com/v4/games") && !isOnlyOnQuery(i));
+
+async function defaultFetch(url: string, init?: RequestInit) {
+  if (isOnlyOnQuery(init)) return new Response("[]");
   const body = url.includes("id.twitch.tv")
     ? { access_token: "t", expires_in: 3600 }
     : url.includes("igdb.com")
@@ -51,7 +57,7 @@ describe("getNewGames", () => {
     expect(mk.image).toBe("https://images.igdb.com/igdb/image/upload/t_screenshot_big/abc.jpg");
     expect(result.games[2].genres).toEqual([{ slug: "adventure", name: "Aventure" }]);
 
-    const igdbCall = fetchMock.mock.calls.find(([u]) => String(u).includes("api.igdb.com"))!;
+    const igdbCall = igdbGameCalls()[0];
     expect(String(igdbCall[1]?.body)).toContain("platforms = (130)");
   });
 
@@ -97,7 +103,7 @@ describe("Switch 2", () => {
     expect(result.sources).toEqual(["rawg", "igdb"]);
     const rawgCall = fetchMock.mock.calls.find(([u]) => String(u).includes("api.rawg.io/api/games"))!;
     expect(String(rawgCall[0])).toContain("platforms=999");
-    const igdbCall = fetchMock.mock.calls.find(([u]) => String(u).includes("api.igdb.com/v4/games"))!;
+    const igdbCall = igdbGameCalls()[0];
     expect(String(igdbCall[1]?.body)).toContain("platforms = (508)");
   });
 
@@ -107,6 +113,60 @@ describe("Switch 2", () => {
     const result = await getNewGames(getPlatform("switch-2")!, "semaine");
     expect(fetchMock.mock.calls.some(([u]) => String(u).includes("api.rawg.io/api/games"))).toBe(false);
     expect(result.games.map((g) => g.name)).toEqual(["Mario Kart World™", "Igdb Only"]);
+  });
+});
+
+describe("page Switch", () => {
+  // IGDB : « Rawg Only » est un jeu Switch 2 seulement, « Igdb Only » existe aussi sur Switch
+  function withSwitch2Games(url: string, init?: RequestInit) {
+    if (isOnlyOnQuery(init)) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify([
+            { id: 700, slug: "rawg-only", name: "Rawg Only", first_release_date: 1749081600, platforms: [508] },
+            { id: 701, slug: "both", name: "Both Consoles", first_release_date: 1749081600, platforms: [508, 130] },
+          ]),
+        ),
+      );
+    }
+    if (url.includes("api.igdb.com/v4/platforms")) return Promise.resolve(new Response(JSON.stringify([{ id: 508 }])));
+    return defaultFetch(url, init);
+  }
+
+  it("cache les jeux sortis seulement sur Switch 2", async () => {
+    fetchMock.mockImplementation(withSwitch2Games);
+    const { getNewGames } = await import("./games");
+    const result = await getNewGames(getPlatform("switch")!, "semaine");
+    expect(result.games.map((g) => g.name)).toEqual(["Mario Kart World", "Igdb Only"]);
+    const onlyOn = fetchMock.mock.calls.find(([, i]) => isOnlyOnQuery(i))!;
+    expect(String(onlyOn[1]?.body)).toContain("platforms = (508)");
+  });
+
+  it("garde un jeu trouvé par IGDB sur la Switch, même s'il est aussi sur Switch 2", async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (isOnlyOnQuery(init)) {
+        return Promise.resolve(new Response(JSON.stringify([{ id: 900, name: "Mario Kart World", first_release_date: 1749081600, platforms: [508] }])));
+      }
+      return withSwitch2Games(url, init);
+    });
+    const { getNewGames } = await import("./games");
+    const result = await getNewGames(getPlatform("switch")!, "semaine");
+    expect(result.games.map((g) => g.name)).toContain("Mario Kart World");
+  });
+
+  it("ne change rien sur les autres plateformes", async () => {
+    fetchMock.mockImplementation(withSwitch2Games);
+    const { getNewGames } = await import("./games");
+    const result = await getNewGames(getPlatform("pc")!, "semaine");
+    expect(result.games.map((g) => g.name)).toContain("Rawg Only");
+    expect(fetchMock.mock.calls.some(([, i]) => isOnlyOnQuery(i))).toBe(false);
+  });
+
+  it("filtre aussi le catalogue", async () => {
+    fetchMock.mockImplementation(withSwitch2Games);
+    const { getCatalog } = await import("./games");
+    const result = await getCatalog(getPlatform("switch")!, { sort: "populaires", page: 1 });
+    expect(result.games.map((g) => g.name)).not.toContain("Rawg Only");
   });
 });
 
@@ -121,7 +181,7 @@ describe("getCatalog", () => {
     const rawgUrl = String(fetchMock.mock.calls.find(([u]) => String(u).includes("rawg.io"))![0]);
     expect(rawgUrl).toContain("search=Mario");
     expect(rawgUrl).toContain("page=2");
-    const igdbBody = String(fetchMock.mock.calls.find(([u]) => String(u).includes("api.igdb.com"))![1]?.body);
+    const igdbBody = String(igdbGameCalls()[0][1]?.body);
     expect(igdbBody).toContain('search "Mario  Kart";');
     expect(igdbBody).toContain("offset 24;");
   });
@@ -153,7 +213,7 @@ describe("getCandidates (Pour toi)", () => {
     expect(rawgCalls.some((u) => u.includes("platforms=7&") || u.endsWith("platforms=7"))).toBe(true);
     expect(rawgCalls.some((u) => u.includes("platforms=4&") || u.endsWith("platforms=4"))).toBe(true);
     expect(rawgCalls.every((u) => u.includes("platforms="))).toBe(true);
-    const igdbBodies = fetchMock.mock.calls.filter(([u]) => String(u).includes("api.igdb.com/v4/games")).map(([, i]) => String(i?.body));
+    const igdbBodies = igdbGameCalls().map(([, i]) => String(i?.body));
     expect(igdbBodies.every((b) => b.includes("platforms = ("))).toBe(true);
     const mario = result.games.find((g) => g.name === "Mario Kart World")!;
     expect(mario.platforms?.sort()).toEqual(["pc", "switch"]);
