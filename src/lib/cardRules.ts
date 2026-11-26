@@ -5,6 +5,7 @@
  */
 import { RARITIES, consumePack, type Card, type PulledCard, type Rarity } from "./cards";
 import type { Collection } from "./data";
+import { QUEST_IDS, claimQuest, recordBooster, recordWorkshop, type QuestId, type Reward } from "./quests";
 import { craft, recycleAll, recycleOne, tradeUp, upgrade } from "./workshop";
 
 export type CardAction =
@@ -13,7 +14,10 @@ export type CardAction =
   | { type: "recycleOne"; id: number }
   | { type: "craft"; id: number }
   | { type: "tradeUp"; rarity: Rarity }
-  | { type: "upgrade"; id: number };
+  | { type: "upgrade"; id: number }
+  | { type: "claimQuest"; id: QuestId };
+
+export type WorkshopAction = Exclude<CardAction, { type: "booster" } | { type: "claimQuest" }>;
 
 /** Résultat renvoyé au navigateur après une action. */
 export type CardActionResult = {
@@ -25,6 +29,8 @@ export type CardActionResult = {
   /** recyclage : pièces gagnées et cartes recyclées */
   coins?: number;
   cards?: number;
+  /** quête : récompense reçue */
+  reward?: Reward;
 };
 
 const isId = (x: unknown): x is number => typeof x === "number" && Number.isSafeInteger(x);
@@ -42,6 +48,8 @@ export function parseAction(raw: unknown): CardAction | null {
     case "craft":
     case "upgrade":
       return isId(a.id) ? { type: a.type, id: a.id } : null;
+    case "claimQuest":
+      return QUEST_IDS.includes(a.id as QuestId) ? { type: "claimQuest", id: a.id as QuestId } : null;
     case "tradeUp":
       return RARITIES.some((r) => r.id === a.rarity) ? { type: "tradeUp", rarity: a.rarity as Rarity } : null;
     default:
@@ -51,16 +59,16 @@ export function parseAction(raw: unknown): CardAction | null {
 
 /**
  * Range les cartes d'un booster dans la collection et retire un booster de la réserve.
+ * Compte aussi le booster pour les quêtes du jour.
  * Renvoie null s'il n'y a pas de booster disponible (dans ce cas rien ne change).
  */
 export function addPack(
   c: Collection,
   pulled: PulledCard[],
-  ratingsCount: number,
   now = Date.now(),
   opts: { countLocalVitrail?: boolean } = {},
 ): { collection: Collection; pulled: PulledCard[] } | null {
-  const packs = consumePack(c, ratingsCount, now);
+  const packs = consumePack(c, now);
   if (!packs) return null;
   const at = new Date(now).toISOString();
   const owned = { ...c.cards };
@@ -78,19 +86,23 @@ export function addPack(
     return { ...card, isNew: !prev };
   });
   const gotVitrail = cards.some((x) => x.vitrail);
-  return {
-    pulled: cards,
-    collection: {
-      ...c,
-      cards: owned,
-      vitraux,
-      stock: packs.stock,
-      stockAt: packs.stockAt,
-      bonusClaimed: packs.bonusClaimed,
-      packsOpened: c.packsOpened + 1,
-      vitrailsGiven: c.vitrailsGiven + (opts.countLocalVitrail && gotVitrail ? 1 : 0),
-    },
+  const collection: Collection = {
+    ...c,
+    cards: owned,
+    vitraux,
+    stock: packs.stock,
+    stockAt: packs.stockAt,
+    extraPacks: packs.extraPacks,
+    packsOpened: c.packsOpened + 1,
+    vitrailsGiven: c.vitrailsGiven + (opts.countLocalVitrail && gotVitrail ? 1 : 0),
   };
+  return { pulled: cards, collection: recordBooster(collection, cards, now) };
+}
+
+/** Récupère la récompense d'une quête du jour (`rated` = jeux différents notés aujourd'hui). */
+export function applyClaim(c: Collection, id: QuestId, rated: number, now = Date.now()): CardActionResult | null {
+  const r = claimQuest(c, id, rated, now);
+  return r && { collection: r.collection, reward: r.reward };
 }
 
 /**
@@ -99,10 +111,19 @@ export function addPack(
  */
 export function applyWorkshop(
   c: Collection,
-  action: Exclude<CardAction, { type: "booster" }>,
+  action: WorkshopAction,
   pool: Card[],
   random: () => number = Math.random,
+  now = Date.now(),
 ): CardActionResult | null {
+  const r = workshopStep(c, action, pool, random);
+  if (!r) return null;
+  // compte l'action pour les quêtes du jour
+  const recycled = action.type === "recycleAll" ? (r.cards ?? 0) : action.type === "recycleOne" ? 1 : 0;
+  return { ...r, collection: recordWorkshop(r.collection, recycled, now) };
+}
+
+function workshopStep(c: Collection, action: WorkshopAction, pool: Card[], random: () => number): CardActionResult | null {
   switch (action.type) {
     case "recycleAll": {
       const r = recycleAll(c, action.keep);

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCardPool } from "@/lib/cardPool";
 import { openPack, availablePacks, type PulledCard } from "@/lib/cards";
-import { addPack, applyWorkshop, parseAction, type CardActionResult } from "@/lib/cardRules";
+import { addPack, applyClaim, applyWorkshop, parseAction, type CardActionResult } from "@/lib/cardRules";
+import { withLegacyBonus } from "@/lib/quests";
 import {
   adminClient,
   claimVitrail,
   loadCards,
-  ratingsCount,
+  ratingsInfo,
   saveCards,
   userFromRequest,
   vitrailsLeft,
@@ -18,8 +19,8 @@ const fail = (error: string, status: number) => NextResponse.json({ error }, { s
 
 /**
  * POST /api/cartes/action : la seule façon de modifier une collection de cartes.
- * Le serveur vérifie qui tu es, si tu as le droit (booster disponible, doublons, pièces…), tire les cartes
- * lui-même et enregistre le résultat. Le navigateur ne choisit jamais les cartes.
+ * Le serveur vérifie qui tu es, si tu as le droit (booster disponible, doublons, pièces, quête finie…), tire les cartes
+ * lui-même et enregistre le résultat. Le navigateur ne choisit jamais les cartes ni ses récompenses.
  */
 export async function POST(req: Request) {
   const sb = adminClient();
@@ -33,16 +34,18 @@ export async function POST(req: Request) {
 
   try {
     const { cards: pool } = await getCardPool();
+    const ratings = await ratingsInfo(sb, userId);
     // le booster est tiré une seule fois ; si une autre demande passe en même temps, on revérifie avec les données à jour
     let drawn: PulledCard[] | null = null;
 
     for (let attempt = 0; attempt < 3; attempt++) {
       const row = await loadCards(sb, userId);
+      // les boosters bonus de l'ancien système (1 tous les 3 jeux notés) pas encore ouverts sont gardés, 3 au plus
+      const collection = withLegacyBonus(row.collection, ratings.total);
       let result: CardActionResult | null;
 
       if (action.type === "booster") {
-        const ratings = await ratingsCount(sb, userId);
-        if (availablePacks(row.collection, ratings).total === 0) return fail("Plus de booster pour l'instant.", 409);
+        if (availablePacks(collection).total === 0) return fail("Plus de booster pour l'instant.", 409);
         if (!drawn) {
           const left = await vitrailsLeft(sb);
           const { cards, vitrailUsed } = openPack(pool, { vitrailsLeft: left, nextVitrailNumber: 0 });
@@ -55,9 +58,12 @@ export async function POST(req: Request) {
           }
           drawn = cards;
         }
-        result = addPack(row.collection, drawn, ratings);
+        result = addPack(collection, drawn);
+      } else if (action.type === "claimQuest") {
+        result = applyClaim(collection, action.id, ratings.today);
+        if (!result) return fail("Cette quête n'est pas encore finie, ou sa récompense est déjà récupérée.", 409);
       } else {
-        result = applyWorkshop(row.collection, action, pool);
+        result = applyWorkshop(collection, action, pool);
       }
 
       if (!result) return fail("Action impossible avec ta collection actuelle.", 409);

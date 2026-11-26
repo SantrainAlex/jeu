@@ -524,6 +524,32 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 }
 .vitrail .tcard-rarity { color: var(--gold); }
 
+/* Quêtes du jour */
+.quests {
+  background: var(--surface); border: 1px solid var(--line); border-radius: calc(var(--radius) + 4px);
+  padding: 1.5rem 1.75rem; margin: 1.5rem 0;
+}
+.quests-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.quests-head h2 { margin: 0; }
+.quest-list { list-style: none; display: grid; gap: 0.75rem; margin-top: 1rem; }
+.quest {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.9rem;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.8rem 1rem;
+}
+.quest.done { border-color: var(--primary-line); box-shadow: 0 0 0 1px var(--primary-soft); }
+.quest.claimed { opacity: 0.6; }
+.quest-icon { font-size: 1.5rem; }
+.quest-body { display: grid; gap: 0.3rem; min-width: 0; }
+.quest-body .small { margin: 0; }
+.quest-bar { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.quest-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), #4cc9f0); transition: width 0.4s var(--ease); }
+.quest-ok { color: var(--success); font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+@media (max-width: 560px) {
+  .quests { padding: 1.1rem; }
+  .quest { grid-template-columns: auto 1fr; }
+  .quest .button, .quest .quest-ok { grid-column: 1 / -1; justify-self: stretch; text-align: center; }
+}
+
 /* Jauge de recharge des boosters */
 .recharge { display: grid; gap: 0.35rem; margin-top: 0.9rem; }
 .recharge-pips { display: flex; gap: 0.35rem; }

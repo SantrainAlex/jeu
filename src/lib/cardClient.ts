@@ -8,7 +8,7 @@
 import type { Card } from "./cards";
 import { applyWorkshop, type CardAction } from "./cardRules";
 import { cloudEnabled, serverCardAction, type ServerCardResult } from "./cloud";
-import { openLocalBooster, read, updateCollection } from "./store";
+import { claimLocalQuest, openLocalBooster, read, updateCollection } from "./store";
 
 let busy = false;
 
@@ -21,6 +21,10 @@ export async function runCardAction(action: CardAction, pool: Card[]): Promise<S
     if (action.type === "booster") {
       const pulled = openLocalBooster(pool);
       return pulled ? { collection: read().collection, pulled } : { error: "Plus de booster pour l'instant." };
+    }
+    if (action.type === "claimQuest") {
+      const reward = claimLocalQuest(action.id);
+      return reward ? { collection: read().collection, reward } : { error: "Cette quête n'est pas encore finie." };
     }
     return updateCollection((c) => applyWorkshop(c, action, pool)) ?? { error: "Action impossible." };
   } finally {
