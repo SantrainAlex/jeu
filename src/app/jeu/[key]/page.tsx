@@ -113,12 +113,50 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
             {g.description ? (
               <>
                 <ReadMore text={g.description} />
-                {!demo && <p className="muted small">Texte en anglais, fourni par {g.sources.map((s) => SOURCE_NAME[s]).join(" et ")}.</p>}
+                {g.descriptionFr ? (
+                  g.descriptionEn && (
+                    <details className="more-en">
+                      <summary>Description complète (en anglais)</summary>
+                      <ReadMore text={g.descriptionEn} />
+                    </details>
+                  )
+                ) : (
+                  !demo && <p className="muted small">Texte en anglais, fourni par {g.sources.map((s) => SOURCE_NAME[s]).join(" et ")}.</p>
+                )}
               </>
             ) : (
               <p className="muted">Pas encore de description pour ce jeu.</p>
             )}
           </section>
+          {g.pcRequirements && (
+            <section>
+              <h2>Configuration PC</h2>
+              <div className="specs">
+                {(
+                  [
+                    ["Minimum", g.pcRequirements.minimum],
+                    ["Recommandée", g.pcRequirements.recommended],
+                  ] as const
+                ).map(
+                  ([title, rows]) =>
+                    rows.length > 0 && (
+                      <div key={title} className="spec-card">
+                        <h3>{title}</h3>
+                        <dl>
+                          {rows.map((row) => (
+                            <div key={row.label}>
+                              <dt>{row.label}</dt>
+                              <dd>{row.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </div>
+                    ),
+                )}
+              </div>
+              <p className="muted small">D&apos;après la page Steam du jeu.</p>
+            </section>
+          )}
         </div>
 
         <aside className="game-aside">
@@ -138,6 +176,7 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
             {g.developers.length > 0 && <Fact label="Développeur">{list(g.developers)}</Fact>}
             {g.publishers.length > 0 && <Fact label="Éditeur">{list(g.publishers)}</Fact>}
             {g.modes.length > 0 && <Fact label="Modes de jeu">{list(g.modes)}</Fact>}
+            {controllerText(g) && <Fact label="Manette">{controllerText(g)}</Fact>}
             {g.playtime > 0 && <Fact label="Durée moyenne">{g.playtime} h</Fact>}
             {g.ageRating && <Fact label="Âge">{g.ageRating}</Fact>}
             {g.website && (
@@ -165,6 +204,18 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
       </div>
     </article>
   );
+}
+
+const isConsole = (p: string) => /playstation|xbox|nintendo|switch|wii/i.test(p);
+
+/** « Jouable à la manette ? » : d'après Steam (ou RAWG) sur PC, et toujours oui sur console. */
+function controllerText(g: GameDetails): string | null {
+  const pc = g.controller === "full" ? "entièrement" : g.controller === "partial" ? "en partie" : null;
+  const console = g.platforms.some(isConsole);
+  if (pc && console) return `Oui (sur PC : ${pc})`;
+  if (pc) return pc === "entièrement" ? "Oui, entièrement" : "En partie";
+  if (console) return g.platforms.some((p) => /^pc$|windows/i.test(p)) ? "Oui sur console (pas indiqué sur PC)" : "Oui";
+  return null;
 }
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {

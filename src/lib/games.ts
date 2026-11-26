@@ -1,4 +1,5 @@
 import { combineDetails, parseGameKey, type GameDetails } from "./details";
+import { steamAppId, steamInfo } from "./steam";
 import { demoCandidates, demoCatalogPage, demoDetails, demoReleases } from "./demo";
 import {
   hasIgdb,
@@ -288,7 +289,7 @@ export async function getGameDetails(key: string): Promise<{ details: GameDetail
     const main = await rawgDetails(parsed.id);
     if (!main) return null;
     const other = hasIgdb() ? await atMost(igdbFind(main.name, main.released), 4000) : null;
-    return { details: combineDetails(main, other), demo: false };
+    return { details: await withSteam(combineDetails(main, other)), demo: false };
   }
 
   if (!hasIgdb()) return null;
@@ -300,5 +301,24 @@ export async function getGameDetails(key: string): Promise<{ details: GameDetail
         4000,
       )
     : null;
-  return { details: combineDetails(main, other), demo: false };
+  return { details: await withSteam(combineDetails(main, other)), demo: false };
+}
+
+/**
+ * Complète la fiche avec Steam quand le jeu y est vendu : manette, configuration PC
+ * et description en français. Si Steam ne répond pas, la fiche reste telle quelle.
+ */
+export async function withSteam(d: GameDetails): Promise<GameDetails> {
+  const appId = steamAppId(d.stores);
+  if (!appId) return d;
+  const steam = await atMost(steamInfo(appId), 4000);
+  if (!steam) return d;
+  return {
+    ...d,
+    controller: steam.controller ?? d.controller,
+    pcRequirements: steam.pc ?? d.pcRequirements,
+    description: steam.shortFr ?? d.description,
+    descriptionFr: Boolean(steam.shortFr),
+    descriptionEn: steam.shortFr ? d.description : null,
+  };
 }

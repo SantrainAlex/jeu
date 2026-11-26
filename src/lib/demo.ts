@@ -90,6 +90,10 @@ export function demoDetails(id: number): GameDetails {
     modes: ["Solo"],
     stores: [],
     freeToPlay: false,
+    controller: null,
+    pcRequirements: null,
+    descriptionFr: false,
+    descriptionEn: null,
     playtime: 12,
     ageRating: null,
     description:
