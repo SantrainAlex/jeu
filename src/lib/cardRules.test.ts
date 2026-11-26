@@ -16,6 +16,7 @@ describe("parseAction (demandes venues du navigateur)", () => {
   });
   it("ne garde que les champs utiles", () => {
     expect(parseAction({ type: "booster", cards: [card(1, "mythique")] })).toEqual({ type: "booster" });
+    expect(parseAction({ type: "buyBooster", price: 0 })).toEqual({ type: "buyBooster" });
     expect(parseAction({ type: "craft", id: 3, card: card(3, "commune") })).toEqual({ type: "craft", id: 3 });
   });
 });

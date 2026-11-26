@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCardPool } from "@/lib/cardPool";
 import { openPack, availablePacks, type PulledCard } from "@/lib/cards";
-import { addPack, applyClaim, applyWorkshop, parseAction, type CardActionResult } from "@/lib/cardRules";
+import { addPack, applyBuyBooster, applyClaim, applyWorkshop, parseAction, type CardActionResult } from "@/lib/cardRules";
 import { withLegacyBonus } from "@/lib/quests";
 import {
   adminClient,
@@ -59,6 +59,9 @@ export async function POST(req: Request) {
           drawn = cards;
         }
         result = addPack(collection, drawn);
+      } else if (action.type === "buyBooster") {
+        result = applyBuyBooster(collection);
+        if (!result) return fail("Pas assez de pièces pour acheter un booster.", 409);
       } else if (action.type === "claimQuest") {
         result = applyClaim(collection, action, ratings.rated);
         if (!result) return fail("Cette quête n'est pas encore finie, ou sa récompense est déjà récupérée.", 409);

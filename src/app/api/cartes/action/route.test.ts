@@ -78,6 +78,27 @@ describe("POST /api/cartes/action", () => {
     expect((await call({ type: "craft", id: 6 })).status).toBe(409);
   });
 
+  it("achète un booster avec 150 pièces, et refuse quand il en manque", async () => {
+    db.row = { collection: { ...EMPTY_COLLECTION, coinsEarned: 320 }, version: 0 };
+    expect((await call({ type: "buyBooster" })).status).toBe(200);
+    expect((await call({ type: "buyBooster" })).status).toBe(200);
+    // il reste 20 pièces : pas assez pour un 3e
+    expect((await call({ type: "buyBooster" })).status).toBe(409);
+    const c = db.row.collection as Collection;
+    expect(c.coinsSpent).toBe(300);
+    expect(c.extraPacks).toBe(2);
+    // 5 boosters de la réserve + les 2 achetés
+    for (let i = 0; i < 7; i++) expect((await call({ type: "booster" })).status).toBe(200);
+    expect((await call({ type: "booster" })).status).toBe(409);
+  });
+
+  it("deux achats en même temps ne retirent pas les pièces deux fois de travers", async () => {
+    db.row = { collection: { ...EMPTY_COLLECTION, coinsEarned: 150 }, version: 0 };
+    db.racing = 1;
+    expect((await call({ type: "buyBooster" })).status).toBe(200);
+    expect((db.row.collection as Collection).coinsSpent).toBe(150);
+  });
+
   it("donne la récompense d'une quête finie une seule fois", async () => {
     // 3 boosters ouverts + les autres quêtes du jour finies grâce aux compteurs du serveur
     const { questBoard } = await import("@/lib/quests");

@@ -13,6 +13,7 @@ import type { CardAction, CardActionResult } from "@/lib/cardRules";
 import { cloudEnabled, useCloud } from "@/lib/cloud";
 import { useStore } from "@/lib/store";
 import {
+  BOOSTER_PRICE,
   CRAFT_PRICE,
   FINISHES,
   RECYCLE_VALUE,
@@ -306,6 +307,28 @@ export default function WorkshopPage() {
             })}
             {missing.length > 30 && <li className="muted small">… et {missing.length - 30} autres : affine ta recherche.</li>}
           </ul>
+        )}
+      </section>
+
+      {/* ---------- Acheter un booster ---------- */}
+      <section className="panel">
+        <h2>Acheter un booster</h2>
+        <p className="muted">
+          Échange tes pièces contre un booster de plus. Il s&apos;ajoute à tes boosters à ouvrir, même si ta réserve est pleine.
+        </p>
+        <div className="row-actions">
+          <button
+            type="button"
+            className="button"
+            disabled={busy || wallet < BOOSTER_PRICE}
+            onClick={() => act({ type: "buyBooster" }, () => "Booster acheté ! Il t'attend dans l'onglet Boosters.")}
+          >
+            Acheter un booster · <span className="mono">{n(BOOSTER_PRICE)}</span> pièces
+          </button>
+          <Link href="/cartes" className="button ghost">Ouvrir mes boosters</Link>
+        </div>
+        {wallet < BOOSTER_PRICE && (
+          <p className="muted small">Encore {n(BOOSTER_PRICE - wallet)} pièces : recycle des doublons ou termine des quêtes.</p>
         )}
       </section>
 

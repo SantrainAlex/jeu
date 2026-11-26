@@ -6,7 +6,8 @@
  * - Site sans comptes (Supabase pas configuré) : tout se passe dans le navigateur, comme avant.
  */
 import type { Card } from "./cards";
-import { applyWorkshop, type CardAction } from "./cardRules";
+import { applyBuyBooster, applyWorkshop, type CardAction } from "./cardRules";
+import { withLegacyBonus } from "./quests";
 import { cloudEnabled, serverCardAction, type ServerCardResult } from "./cloud";
 import { claimLocalQuest, openLocalBooster, read, updateCollection } from "./store";
 
@@ -25,6 +26,10 @@ export async function runCardAction(action: CardAction, pool: Card[]): Promise<S
     if (action.type === "claimQuest") {
       const reward = claimLocalQuest(action);
       return reward ? { collection: read().collection, reward } : { error: "Cette quête n'est pas encore finie." };
+    }
+    if (action.type === "buyBooster") {
+      const ratings = Object.keys(read().ratings).length;
+      return updateCollection((c) => applyBuyBooster(withLegacyBonus(c, ratings))) ?? { error: "Pas assez de pièces pour acheter un booster." };
     }
     return updateCollection((c) => applyWorkshop(c, action, pool)) ?? { error: "Action impossible." };
   } finally {

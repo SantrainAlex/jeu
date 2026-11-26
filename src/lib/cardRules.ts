@@ -6,10 +6,11 @@
 import { RARITIES, consumePack, type Card, type PulledCard, type Rarity } from "./cards";
 import type { Collection } from "./data";
 import { QUEST_IDS, claimQuest, isPeriod, recordBooster, recordWorkshop, type Period, type QuestId, type RatedCounts, type Reward } from "./quests";
-import { craft, recycleAll, recycleOne, tradeUp, upgrade } from "./workshop";
+import { buyBooster, craft, recycleAll, recycleOne, tradeUp, upgrade } from "./workshop";
 
 export type CardAction =
   | { type: "booster" }
+  | { type: "buyBooster" }
   | { type: "recycleAll"; keep: number }
   | { type: "recycleOne"; id: number }
   | { type: "craft"; id: number }
@@ -17,7 +18,7 @@ export type CardAction =
   | { type: "upgrade"; id: number }
   | { type: "claimQuest"; id: QuestId; period: Period };
 
-export type WorkshopAction = Exclude<CardAction, { type: "booster" } | { type: "claimQuest" }>;
+export type WorkshopAction = Exclude<CardAction, { type: "booster" } | { type: "buyBooster" } | { type: "claimQuest" }>;
 
 /** Résultat renvoyé au navigateur après une action. */
 export type CardActionResult = {
@@ -42,6 +43,8 @@ export function parseAction(raw: unknown): CardAction | null {
   switch (a.type) {
     case "booster":
       return { type: "booster" };
+    case "buyBooster":
+      return { type: "buyBooster" };
     case "recycleAll":
       return isId(a.keep) && a.keep >= 1 && a.keep <= 100 ? { type: "recycleAll", keep: a.keep } : null;
     case "recycleOne":
@@ -111,6 +114,12 @@ export function applyClaim(
 ): CardActionResult | null {
   const r = claimQuest(c, action.id, rated[action.period], now, action.period);
   return r && { collection: r.collection, reward: r.reward };
+}
+
+/** Achète un booster avec ses pièces (il rejoint les boosters à ouvrir). Renvoie null s'il manque des pièces. */
+export function applyBuyBooster(c: Collection): CardActionResult | null {
+  const next = buyBooster(c);
+  return next && { collection: next };
 }
 
 /**

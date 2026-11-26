@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Card, Rarity } from "./cards";
 import { EMPTY_COLLECTION, coins, copies, type Collection } from "./data";
-import { CRAFT_PRICE, RECYCLE_VALUE, craft, recycleAll, recycleOne, recyclePreview, tradeUp, upgrade } from "./workshop";
+import { BOOSTER_PRICE, CRAFT_PRICE, RECYCLE_VALUE, buyBooster, craft, recycleAll, recycleOne, recyclePreview, tradeUp, upgrade } from "./workshop";
 
 const card = (id: number, rarity: Rarity = "commune"): Card => ({ id, name: `Jeu ${id}`, image: null, released: null, rarity });
 
@@ -65,5 +65,17 @@ describe("atelier", () => {
     expect(c.cards[1].finish).toBe("or");
     expect(copies(c.cards[1])).toBe(1);
     expect(upgrade(c, 1)).toBeNull();
+  });
+});
+
+describe("acheter un booster", () => {
+  it("refuse s'il manque des pièces", () => {
+    expect(buyBooster(withCards([], { coinsEarned: BOOSTER_PRICE - 1 }))).toBeNull();
+  });
+  it("retire 150 pièces et ajoute un booster en plus", () => {
+    const next = buyBooster(withCards([], { coinsEarned: BOOSTER_PRICE + 10, extraPacks: 2 }))!;
+    expect(coins(next)).toBe(10);
+    expect(next.extraPacks).toBe(3);
+    expect(buyBooster(next)).toBeNull();
   });
 });
