@@ -197,6 +197,7 @@ export default function WorkshopPage() {
                     const res = updateCollection((c) => tradeUp(c, r.id, pool ?? []));
                     if (res) {
                       setGift(res.card);
+                      viewer.open({ card: res.card, title: "Échange réussi ! Tu gagnes :", reveal: true });
                       done(`Échange réussi : tu obtiens ${res.card.name} (${to.label}) !`);
                     }
                   }}
@@ -266,7 +267,10 @@ export default function WorkshopPage() {
                     className="button ghost"
                     disabled={wallet < price}
                     onClick={() => {
-                      if (updateCollection((col) => craft(col, c))) done(`${c.name} a rejoint ton album !`);
+                      if (updateCollection((col) => craft(col, c))) {
+                        done(`${c.name} a rejoint ton album !`);
+                        viewer.open({ card: c, title: "Carte fabriquée !", reveal: true });
+                      }
                     }}
                   >
                     Fabriquer · <span className="mono">{n(price)}</span>

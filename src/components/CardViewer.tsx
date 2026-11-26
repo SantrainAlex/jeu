@@ -7,7 +7,16 @@ import type { Card } from "@/lib/cards";
 import { gameHref } from "@/lib/details";
 import type { Finish } from "@/lib/data";
 
-export type ViewedCard = { card: Card; vitrail?: number; count?: number; finish?: Finish };
+export type ViewedCard = {
+  card: Card;
+  vitrail?: number;
+  count?: number;
+  finish?: Finish;
+  /** titre au-dessus de la carte, ex. « Échange réussi ! » */
+  title?: string;
+  /** la carte arrive face cachée puis se retourne toute seule (carte qu'on vient de gagner) */
+  reveal?: boolean;
+};
 
 /** angle de la carte arrondi au côté le plus proche (0 = face, 180 = dos, 360 = face…) */
 const snap = (deg: number) => Math.round(deg / 180) * 180;
@@ -26,13 +35,16 @@ export function useCardViewer() {
 
   const open = useCallback((c: ViewedCard) => {
     setShown(c);
-    setAngle(0);
+    setAngle(c.reveal ? 180 : 0);
   }, []);
   const close = () => dialog.current?.close();
 
   // ouvre la fenêtre une fois la carte prête à être affichée
   useEffect(() => {
     if (shown && !dialog.current?.open) dialog.current?.showModal();
+    if (!shown?.reveal) return;
+    const t = setTimeout(() => setAngle(360), 450);
+    return () => clearTimeout(t);
   }, [shown]);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -77,6 +89,7 @@ export function useCardViewer() {
     >
       {shown && (
         <div className="card-viewer-body" onClick={(e) => e.target === e.currentTarget && close()}>
+          {shown.title && <p className="card-viewer-title">{shown.title}</p>}
           <div
             className={dragging ? "card-viewer-card dragging" : "card-viewer-card"}
             style={{ "--flip": `${angle}deg` } as React.CSSProperties}
