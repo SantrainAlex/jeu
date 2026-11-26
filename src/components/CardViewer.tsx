@@ -53,7 +53,23 @@ export function useCardViewer() {
     drag.current = { x: e.clientX, start: angle, width: e.currentTarget.offsetWidth || 300, moved: false };
     setDragging(true);
   };
-  const onPointerMove = (e: React.PointerEvent) => {
+  // reflets (holo, brillance) : ils suivent le doigt ou la souris, comme dans l'album
+  const light = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    el.style.setProperty("--vx", `${x * 100}%`);
+    el.style.setProperty("--vy", `${y * 100}%`);
+    el.dataset.live = "1";
+  };
+  const unlight = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (drag.current) return;
+    delete e.currentTarget.dataset.live;
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    light(e);
     const d = drag.current;
     if (!d) return;
     const dx = e.clientX - d.x;
@@ -100,6 +116,7 @@ export function useCardViewer() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
+            onPointerLeave={unlight}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " " || e.key === "ArrowRight") {
                 e.preventDefault();
