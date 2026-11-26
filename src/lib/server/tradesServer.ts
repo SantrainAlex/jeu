@@ -42,6 +42,30 @@ export async function findPlayer(sb: SupabaseClient, name: string): Promise<{ us
   return row ? { userId: row.user_id, username: row.username } : null;
 }
 
+/**
+ * Les joueurs dont le nom contient ces lettres (ceux qui commencent par elles d'abord), sans toi.
+ * Seulement le nom et les points du classement, comme le classement public.
+ */
+export async function searchPlayers(sb: SupabaseClient, me: string, text: string): Promise<{ players: { username: string; score: number }[] }> {
+  const q = text.trim().replace(/[\\%_]/g, "\\$&");
+  const LIMIT = 8;
+  const [starts, contains] = await Promise.all([
+    sb.from("profiles").select("user_id, username").ilike("username", `${q}%`).neq("user_id", me).order("username").limit(LIMIT),
+    sb.from("profiles").select("user_id, username").ilike("username", `%${q}%`).neq("user_id", me).order("username").limit(LIMIT * 2),
+  ]);
+  if (starts.error) throw starts.error;
+  if (contains.error) throw contains.error;
+  const seen = new Set<string>();
+  const found = [...(starts.data ?? []), ...(contains.data ?? [])]
+    .filter((p) => !seen.has(p.user_id) && seen.add(p.user_id))
+    .slice(0, LIMIT) as { user_id: string; username: string }[];
+  if (!found.length) return { players: [] };
+  const { data: cards, error } = await sb.from("user_cards").select("user_id, score").in("user_id", found.map((p) => p.user_id));
+  if (error) throw error;
+  const score = new Map((cards ?? []).map((c) => [c.user_id as string, c.score as number]));
+  return { players: found.map((p) => ({ username: p.username, score: score.get(p.user_id) ?? 0 })) };
+}
+
 /** Les offres restées sans réponse trop longtemps passent en « expirée ». */
 async function expireOld(sb: SupabaseClient, userId: string) {
   const limit = new Date(Date.now() - EXPIRE_MS).toISOString();

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
 import { rarityInfo } from "@/lib/cards";
 import { cloudEnabled, refreshCards, tradesRequest, useCloud } from "@/lib/cloud";
@@ -183,13 +183,13 @@ export default function TradesPage() {
             lookUp(name);
           }}
         >
-          <input
-            className="search-input"
-            type="search"
-            placeholder="Nom du joueur…"
-            aria-label="Nom d'utilisateur du joueur"
+          <PlayerSearch
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={setName}
+            onPick={(who) => {
+              setName(who);
+              lookUp(who);
+            }}
           />
           <button type="submit" className="button ghost" disabled={busy || name.trim().length < 3}>
             Voir ses doublons
@@ -379,6 +379,116 @@ function Picker({
             {shown.length > 60 && <li className="muted small">… et {shown.length - 60} autres : filtre par nom.</li>}
           </ul>
         </>
+      )}
+    </div>
+  );
+}
+
+/** Temps d'attente après la dernière lettre tapée avant de chercher les joueurs (ms). */
+const WAIT = 200;
+
+/**
+ * Le champ « Nom du joueur » : dès la 1re lettre, les joueurs dont le nom contient ces lettres
+ * apparaissent juste en dessous (ceux qui commencent par elles d'abord). Un clic, ou flèches + Entrée, choisit le joueur.
+ */
+function PlayerSearch({ value, onChange, onPick }: { value: string; onChange: (v: string) => void; onPick: (username: string) => void }) {
+  const listId = useId();
+  const [items, setItems] = useState<{ username: string; score: number }[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [active, setActive] = useState(-1);
+  const typed = useRef(false);
+  const wanted = value.trim();
+
+  useEffect(() => {
+    if (!typed.current || wanted.length < 1) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+    let stale = false;
+    setLoading(true);
+    const timer = setTimeout(async () => {
+      const res = await tradesRequest<{ players: { username: string; score: number }[] }>(`?chercher=${encodeURIComponent(wanted)}`);
+      if (stale) return;
+      setItems("error" in res ? [] : res.players);
+      setActive(-1);
+      setLoading(false);
+    }, WAIT);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [wanted]);
+
+  const pick = (username: string) => {
+    setOpen(false);
+    typed.current = false;
+    setItems([]);
+    onPick(username);
+  };
+  const show = open && wanted.length >= 1 && typed.current;
+
+  return (
+    <div className="player-search">
+      <input
+        className="search-input"
+        type="search"
+        placeholder="Nom du joueur…"
+        aria-label="Nom d'utilisateur du joueur"
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={show}
+        aria-controls={listId}
+        aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
+        value={value}
+        onChange={(e) => {
+          typed.current = true;
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setOpen(false);
+          if (!items.length) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setOpen(true);
+            setActive((i) => (i + 1) % items.length);
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setActive((i) => (i <= 0 ? items.length - 1 : i - 1));
+          } else if (e.key === "Enter" && active >= 0 && items[active]) {
+            e.preventDefault();
+            pick(items[active].username);
+          }
+        }}
+      />
+      {show && (
+        // onMouseDown : on choisit avant que le champ perde le focus (sinon la liste se ferme d'abord)
+        <div className="suggestions" onMouseDown={(e) => e.preventDefault()}>
+          <ul id={listId} role="listbox" aria-label="Joueurs">
+            {items.map((p, i) => (
+              <li key={p.username} id={`${listId}-${i}`} role="option" aria-selected={i === active}>
+                <a
+                  href={`/cartes/echanges?avec=${encodeURIComponent(p.username)}`}
+                  className={i === active ? "active" : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    pick(p.username);
+                  }}
+                >
+                  <span className="suggestion-placeholder">{p.username.slice(0, 1).toUpperCase()}</span>
+                  <span className="suggestion-name">{p.username}</span>
+                  <span className="suggestion-year">{p.score.toLocaleString("fr-FR")} pts</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          {loading && items.length === 0 && <p className="suggestion-note">Recherche…</p>}
+          {!loading && items.length === 0 && <p className="suggestion-note">Aucun joueur trouvé.</p>}
+        </div>
       )}
     </div>
   );

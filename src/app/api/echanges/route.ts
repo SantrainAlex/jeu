@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminClient, userFromRequest } from "@/lib/server/cardsServer";
-import { TradeError, listTrades, playerCards, runTrade } from "@/lib/server/tradesServer";
+import { TradeError, listTrades, playerCards, runTrade, searchPlayers } from "@/lib/server/tradesServer";
 import { USERNAME, parseTradeAction } from "@/lib/trades";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +27,16 @@ async function handle(req: Request, run: (sb: NonNullable<ReturnType<typeof admi
 /**
  * GET /api/echanges : tes offres reçues, envoyées et terminées.
  * GET /api/echanges?joueur=Nom : les doublons que ce joueur peut échanger.
+ * GET /api/echanges?chercher=al : les joueurs dont le nom contient ces lettres (suggestions sous le champ).
  */
 export async function GET(req: Request) {
-  const name = new URL(req.url).searchParams.get("joueur");
+  const params = new URL(req.url).searchParams;
+  const search = params.get("chercher");
+  if (search !== null) {
+    if (!/^[\p{L}\p{N}_.-]{1,20}$/u.test(search.trim())) return NextResponse.json({ players: [] });
+    return handle(req, (sb, me) => searchPlayers(sb, me, search));
+  }
+  const name = params.get("joueur");
   if (name !== null && !USERNAME.test(name.trim())) return fail("Ce nom n'est pas valide : 3 à 20 lettres, chiffres, - _ ou .", 400);
   return handle(req, (sb, me) => (name !== null ? playerCards(sb, me, name) : listTrades(sb, me)));
 }
