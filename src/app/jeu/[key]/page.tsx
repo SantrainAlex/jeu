@@ -11,6 +11,7 @@ import { WhereToBuy } from "@/components/WhereToBuy";
 import { toGame, type GameDetails } from "@/lib/details";
 import { getGameDetails } from "@/lib/games";
 import { gamePlatforms } from "@/lib/platforms";
+import { PlayerPerf } from "@/components/PlayerPerf";
 import { hasPrices, shopLinks } from "@/lib/shops";
 import { SITE_NAME } from "@/lib/site";
 
@@ -242,29 +243,36 @@ function PlatformBadges({ names }: { names: string[] }) {
 
 /**
  * « Sur quelle plateforme y jouer ? » : aucune source automatique ne donne la résolution et les FPS par console,
- * alors on renvoie vers les analyses qui les mesurent (Digital Foundry, backwards-compatible.com, comparatifs).
+ * alors on montre l'avis des joueurs du site, et on renvoie vers les analyses qui les mesurent
+ * (Digital Foundry, backwards-compatible.com, comparatifs).
  */
 function Performance({ game: g }: { game: GameDetails }) {
   const { known } = gamePlatforms(g.platforms);
-  if (known.length < 2) return null;
+  if (known.length === 0) return null;
+  const several = known.length >= 2;
   const q = (text: string) => encodeURIComponent(text);
   const consoles = known.filter((p) => p.slug !== "pc" && p.slug !== "mobile").map((p) => p.short);
   const versus = known.filter((p) => p.slug !== "mobile").map((p) => p.short).slice(0, 3).join(" vs ");
   const links = [
     { label: "Analyse Digital Foundry", hint: "résolution et FPS mesurés", url: `https://www.youtube.com/results?search_query=${q(`Digital Foundry ${g.name}`)}` },
-    { label: `Comparatif ${versus}`, hint: "les versions côte à côte", url: `https://www.youtube.com/results?search_query=${q(`${g.name} ${versus} comparison`)}` },
+    ...(several && versus.includes(" vs ")
+      ? [{ label: `Comparatif ${versus}`, hint: "les versions côte à côte", url: `https://www.youtube.com/results?search_query=${q(`${g.name} ${versus} comparison`)}` }]
+      : []),
     ...(consoles.length
       ? [{ label: "backwards-compatible.com", hint: "résolution et FPS par console", url: `https://www.google.com/search?q=${q(`site:backwards-compatible.com ${g.name}`)}` }]
       : []),
   ];
   return (
     <section>
-      <h2>Sur quelle plateforme y jouer ?</h2>
+      <h2>{several ? "Sur quelle plateforme y jouer ?" : "Résolution et FPS"}</h2>
       <p className="muted perf-intro">
-        Le jeu sort sur {known.map((p) => p.short).join(", ")}. La résolution et les FPS changent d&apos;une console à l&apos;autre :
-        ces analyses les mesurent.
-        {g.pcRequirements && " Sur PC, ça dépend de ta machine (voir la configuration ci-dessus)."}
+        {several
+          ? <>Le jeu sort sur {known.map((p) => p.short).join(", ")}. La résolution et les FPS changent d&apos;une plateforme à l&apos;autre.</>
+          : <>Le jeu sort sur {known[0].short}.</>}
+        {g.pcRequirements && known.some((p) => p.slug === "pc") && " Sur PC, ça dépend de ta machine (voir la configuration ci-dessus)."}
       </p>
+      <PlayerPerf gameId={g.id} platforms={known.map((p) => ({ slug: p.slug, short: p.short, color: p.color }))} />
+      <h3 className="perf-links-title">Les analyses qui les mesurent</h3>
       <div className="perf-links">
         {links.map((l) => (
           <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer" className="perf-link">

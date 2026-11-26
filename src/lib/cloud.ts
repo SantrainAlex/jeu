@@ -11,6 +11,7 @@ import type { CardAction, CardActionResult } from "./cardRules";
 import { EMPTY, EMPTY_COLLECTION, isEmpty, normalize, type Collection, type Data } from "./data";
 import { onUserChange, read, replaceAll, setCollection } from "./store";
 import { mergeData } from "./sync";
+import { toSummaries, type PerfReport, type PerfSummary } from "./perf";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -243,4 +244,45 @@ export async function getMyRank(): Promise<RankRow | null> {
   const { data, error } = await sb.rpc("my_rank");
   if (error) throw error;
   return ((data as RankRow[]) ?? [])[0] ?? null;
+}
+
+// ---------- Avis résolution / FPS ----------
+
+/**
+ * Le résumé des avis des joueurs pour un jeu (visible même sans être connecté).
+ * null si la fonction n'existe pas encore dans la base (SQL pas encore lancé) : la partie reste alors cachée.
+ */
+export async function getPerfSummary(gameId: number): Promise<PerfSummary[] | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("perf_summary", { gid: gameId });
+  if (error) return null;
+  return toSummaries(data);
+}
+
+/** Tes propres avis sur ce jeu (un par plateforme). */
+export async function getMyPerf(gameId: number): Promise<PerfReport[]> {
+  const sb = supabase();
+  if (!sb || !state.userId) return [];
+  const { data, error } = await sb.from("perf_reports").select("platform, resolution, fps, stable").eq("game_id", gameId);
+  if (error) return [];
+  return (data as PerfReport[]) ?? [];
+}
+
+/** Enregistre (ou remplace) ton avis pour une plateforme. Renvoie un message d'erreur, ou null si c'est bon. */
+export async function savePerf(gameId: number, report: PerfReport): Promise<string | null> {
+  const sb = supabase();
+  if (!sb || !state.userId) return "Connecte-toi pour donner ton avis.";
+  const { error } = await sb
+    .from("perf_reports")
+    .upsert({ user_id: state.userId, game_id: gameId, ...report, updated_at: new Date().toISOString() }, { onConflict: "user_id,game_id,platform" });
+  return error ? "Impossible d'enregistrer ton avis pour le moment, réessaie." : null;
+}
+
+/** Retire ton avis pour une plateforme. */
+export async function deletePerf(gameId: number, platform: string): Promise<string | null> {
+  const sb = supabase();
+  if (!sb || !state.userId) return "Connecte-toi pour donner ton avis.";
+  const { error } = await sb.from("perf_reports").delete().eq("game_id", gameId).eq("platform", platform);
+  return error ? "Impossible de retirer ton avis pour le moment, réessaie." : null;
 }

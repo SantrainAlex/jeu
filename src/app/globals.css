@@ -977,3 +977,28 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .rank-table tr.me td { background: var(--primary-soft); }
 .points-scale { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 0.5rem; padding: 0; list-style: none; }
 .points-scale li { display: flex; align-items: center; gap: 0.4rem; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 0.3rem 0.75rem; font-size: 0.88rem; }
+
+/* Avis des joueurs : résolution et FPS */
+.player-perf { display: grid; gap: 0.7rem; margin: 0.4rem 0 1.2rem; padding: 0.9rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.player-perf h3, .perf-links-title { font-size: 0.95rem; }
+.perf-links-title { margin-bottom: 0.5rem; }
+.perf-best { font-size: 0.92rem; }
+.perf-table { display: grid; gap: 0.35rem; }
+.perf-row {
+  display: grid; grid-template-columns: 6.5rem 4rem 4.5rem 1fr auto; align-items: center; gap: 0.6rem;
+  padding: 0.45rem 0.7rem; border-radius: 10px; background: var(--surface-2); border-left: 3px solid var(--accent, var(--line));
+  font-size: 0.88rem;
+}
+.perf-plat { font-weight: 600; }
+.perf-none { grid-column: 2 / -1; }
+.perf-form { display: grid; gap: 0.5rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
+.perf-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.perf-submit {
+  padding: 0.5rem 1.1rem; border-radius: 999px; border: none; background: var(--primary); color: #fff; font-weight: 600;
+  cursor: pointer; font-family: var(--font-display), sans-serif; font-size: 0.9rem;
+}
+.perf-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 640px) {
+  .perf-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.15rem 0.7rem; }
+  .perf-row .perf-plat { flex-basis: 100%; }
+}
