@@ -12,7 +12,7 @@ import {
   igdbPlatformId,
   igdbReleases,
 } from "./igdb";
-import { isSameGame, mergeGames, rankByTitle } from "./merge";
+import { isSameGame, mergeGames, rankByTitle, rankSuggestions } from "./merge";
 import { ALL_PLATFORMS, getPlatform, PERIODS, type Period, type Platform } from "./platforms";
 import {
   hasRawg,
@@ -236,6 +236,23 @@ export async function getCatalog(
  */
 export function searchGames(query: string, page: number) {
   return getCatalog(ALL_PLATFORMS, { query, sort: "populaires", page });
+}
+
+/** Nombre de suggestions affichées sous la barre de recherche. */
+export const SUGGESTIONS = 4;
+
+/**
+ * Les quelques jeux proposés sous la barre de recherche pendant qu'on tape.
+ * Une seule petite page par source, pour répondre vite ; le reste se voit sur la page de résultats.
+ */
+export async function suggestGames(typed: string): Promise<Game[]> {
+  const o = { query: typed, sort: "populaires" as const, page: 1, pageSize: 10 };
+  if (!hasRawg() && !hasIgdb()) return rankSuggestions(demoCatalogPage(o).games, typed).slice(0, SUGGESTIONS);
+  const result = await fromBothSources(
+    hasRawg() ? () => onPlatforms("rawg", [ALL_PLATFORMS], (ids) => rawgCatalog(ids, o)) : null,
+    hasIgdb() ? () => onPlatforms("igdb", [ALL_PLATFORMS], (ids) => igdbCatalog(ids, o)) : null,
+  );
+  return rankSuggestions(result.games, typed).slice(0, SUGGESTIONS);
 }
 
 /** Nombre de pages précédentes demandées en même temps aux sources (IGDB refuse plus de 4 requêtes par seconde). */

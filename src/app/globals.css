@@ -119,6 +119,31 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 }
 .header-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 
+/* Suggestions sous la barre de recherche */
+.suggestions {
+  position: absolute; top: calc(100% + 0.4rem); left: 0; right: 0; z-index: 60; min-width: 280px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); padding: 0.35rem; overflow: hidden;
+}
+.suggestions ul { list-style: none; margin: 0; padding: 0; }
+.suggestions li a {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 0.7rem;
+  padding: 0.4rem; border-radius: 8px; color: var(--text);
+}
+.suggestions li a:hover, .suggestions li a.active { background: var(--surface-2); }
+.suggestions img, .suggestion-placeholder {
+  width: 56px; height: 32px; border-radius: 5px; object-fit: cover; background: var(--surface-3);
+}
+.suggestion-placeholder { display: grid; place-items: center; color: var(--muted); font-weight: 700; }
+.suggestion-name { font-size: 0.9rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggestion-year { font-family: var(--font-mono), monospace; font-size: 0.78rem; color: var(--muted); }
+.suggestion-note { margin: 0; padding: 0.6rem; color: var(--muted); font-size: 0.88rem; }
+.suggestion-all {
+  display: block; margin-top: 0.25rem; padding: 0.55rem 0.5rem 0.4rem; border-top: 1px solid var(--line);
+  color: var(--primary); font-size: 0.86rem; font-weight: 600;
+}
+.suggestion-all:hover { text-decoration: underline; }
+
 .container { width: 100%; max-width: 1180px; margin: 0 auto; padding: 2rem 1rem calc(3rem + var(--tabbar-h)); flex: 1; }
 .site-footer {
   text-align: center; padding: 1.5rem 1rem calc(1.5rem + var(--tabbar-h)); color: var(--muted); font-size: 0.8rem;

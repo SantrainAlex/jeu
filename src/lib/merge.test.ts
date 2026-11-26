@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSameGame, mergeGames, normalizeTitle } from "./merge";
+import { isSameGame, mergeGames, normalizeTitle, rankSuggestions } from "./merge";
 import type { Game } from "./types";
 
 const game = (over: Partial<Game>): Game => ({
@@ -64,5 +64,17 @@ describe("mergeGames", () => {
     expect(silksong.rating).toBe(4.5);
     expect(silksong.released).toBe("2025-02-28");
     expect(silksong.genres.map((g) => g.slug)).toEqual(["platformer", "indie"]);
+  });
+});
+
+describe("rankSuggestions", () => {
+  const names = (list: Game[]) => list.map((g) => g.name);
+  it("met d'abord les titres qui commencent par le texte tapé", () => {
+    const list = [game({ name: "Twins Saga" }), game({ name: "Insurgency" }), game({ name: "Inside" }), game({ name: "Batman: Arkham Insurgent" })];
+    expect(names(rankSuggestions(list, "ins"))).toEqual(["Insurgency", "Inside", "Batman: Arkham Insurgent", "Twins Saga"]);
+  });
+  it("met le titre exact en premier", () => {
+    const list = [game({ name: "Inside Out" }), game({ name: "INSIDE" })];
+    expect(names(rankSuggestions(list, "inside"))).toEqual(["INSIDE", "Inside Out"]);
   });
 });
