@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DISMISS_KEY, type InstallPlatform, detectPlatform, isDismissed } from "@/lib/install";
+import { SITE_NAME } from "@/lib/site";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -87,7 +88,7 @@ export function InstallPrompt() {
       {/* eslint-disable-next-line @next/next/no-img-element -- petite icône fixe */}
       <img src="/icons/icon-192.png" alt="" width={44} height={44} className="install-icon" />
       <div className="install-text">
-        <strong>Installe l&apos;app Jeu</strong>
+        <strong>Installe l&apos;app {SITE_NAME}</strong>
         {platform === "ios" ? (
           <span>
             Touche <ShareIcon /> <b>Partager</b>, puis <b>Sur l&apos;écran d&apos;accueil</b>.
