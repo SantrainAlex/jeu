@@ -12,11 +12,24 @@ export type Platform = {
    * (utile pour une console récente dont l'identifiant n'est pas encore sûr, comme la Switch 2).
    */
   lookupName?: string;
+  /**
+   * Slug d'une autre plateforme du site : on cache ici les jeux qu'IGDB dit sortis seulement sur celle-là.
+   * Sert pour la Switch : RAWG range aussi les jeux Switch 2 avec la Switch.
+   */
+  hideGamesOnlyOn?: string;
   color: string;
 };
 
 export const PLATFORMS: Platform[] = [
-  { slug: "switch", name: "Nintendo Switch", short: "Switch", rawgIds: [7], igdbIds: [130], color: "#e60012" },
+  {
+    slug: "switch",
+    name: "Nintendo Switch",
+    short: "Switch",
+    rawgIds: [7],
+    igdbIds: [130],
+    hideGamesOnlyOn: "switch-2",
+    color: "#e60012",
+  },
   {
     slug: "switch-2",
     name: "Nintendo Switch 2",
