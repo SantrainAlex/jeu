@@ -3,6 +3,8 @@
 import { useRef } from "react";
 import { rarityInfo, type Card } from "@/lib/cards";
 import type { Finish } from "@/lib/data";
+import { Logo } from "./Logo";
+import { RarityGlyph } from "./RarityGlyph";
 
 const FINISH_LABEL: Record<Finish, string> = { argent: "Argent", or: "Or" };
 
@@ -75,7 +77,9 @@ export function TradingCard({
     >
       <span className="tcard-inner">
         <span className="tcard-back" aria-hidden="true">
-          <span className="tcard-back-logo">J</span>
+          <span className="tcard-back-logo">
+            <Logo size={44} wordmark={false} />
+          </span>
         </span>
         <span className="tcard-front">
           <span className="tcard-art">
@@ -94,6 +98,7 @@ export function TradingCard({
           <span className="tcard-name">{card.name}</span>
           <span className="tcard-meta">
             <span className="tcard-rarity">
+              <RarityGlyph rarity={vitrail ? "vitrail" : card.rarity} size={12} />
               {vitrail ? `Vitrail n° ${vitrail}` : r.label}
               {finish && <span className="tcard-finish"> · {FINISH_LABEL[finish]}</span>}
             </span>

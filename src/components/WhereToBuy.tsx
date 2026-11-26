@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Offer, ShopLink } from "@/lib/shops";
+import { ExternalLabel } from "./ExternalLabel";
 
 const euros = (n: number, currency: string) => n.toLocaleString("fr-FR", { style: "currency", currency });
 
@@ -75,7 +76,7 @@ export function WhereToBuy({ name, stores, links, withPrices, free }: Props) {
             <div className="store-links">
               {stores.map((st) => (
                 <a key={st.url} href={st.url} target="_blank" rel="noopener noreferrer" className="chip">
-                  {st.name} ↗
+                  <ExternalLabel>{st.name}</ExternalLabel>
                 </a>
               ))}
             </div>
@@ -86,8 +87,8 @@ export function WhereToBuy({ name, stores, links, withPrices, free }: Props) {
             <p className="muted tiny">Comparer le prix sur :</p>
             <div className="shop-links">
               {links.map((l) => (
-                <a key={l.shop} href={l.url} target="_blank" rel="noopener noreferrer sponsored" className="button ghost">
-                  {l.shop} ↗
+                <a key={l.shop} href={l.url} target="_blank" rel="noopener noreferrer sponsored" className="button ghost ext-button">
+                  <ExternalLabel>{l.shop}</ExternalLabel>
                 </a>
               ))}
             </div>

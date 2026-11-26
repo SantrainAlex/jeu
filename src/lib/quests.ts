@@ -8,6 +8,7 @@
  * Avec les comptes, c'est le serveur qui compte les boosters ouverts, les cartes obtenues et les actions de l'atelier
  * (le navigateur ne peut pas les inventer), et c'est lui qui donne les récompenses.
  */
+import type { IconName } from "@/components/Icon";
 import type { PulledCard } from "./cards";
 import type { Collection } from "./data";
 
@@ -21,10 +22,10 @@ export type QuestId = Metric | "all";
 
 export type Reward = { packs?: number; coins?: number };
 
-export type Quest = { id: QuestId; icon: string; label: string; goal: number; reward: Reward };
+export type Quest = { id: QuestId; icon: IconName; label: string; goal: number; reward: Reward };
 
 type Variant = { goal: number; reward: Reward };
-type Template = { id: Metric; icon: string; label: (n: number) => string; variants: Record<Period, Variant[]> };
+type Template = { id: Metric; icon: IconName; label: (n: number) => string; variants: Record<Period, Variant[]> };
 
 const plural = (n: number, one: string, many: string) => (n > 1 ? many : one);
 
@@ -36,7 +37,7 @@ const plural = (n: number, one: string, many: string) => (n > 1 ? many : one);
 export const QUEST_TEMPLATES: Template[] = [
   {
     id: "rated",
-    icon: "⭐",
+    icon: "star",
     label: (n) => `Note ${n} ${plural(n, "jeu", "jeux")}`,
     variants: {
       day: [
@@ -56,7 +57,7 @@ export const QUEST_TEMPLATES: Template[] = [
   },
   {
     id: "opened",
-    icon: "🎁",
+    icon: "booster",
     label: (n) => `Ouvre ${n} boosters`,
     variants: {
       day: [
@@ -76,7 +77,7 @@ export const QUEST_TEMPLATES: Template[] = [
   },
   {
     id: "rare",
-    icon: "💎",
+    icon: "sparkle",
     label: (n) => (n > 1 ? `Obtiens ${n} cartes Rares ou mieux` : "Obtiens une carte Rare ou mieux"),
     variants: {
       day: [
@@ -95,7 +96,7 @@ export const QUEST_TEMPLATES: Template[] = [
   },
   {
     id: "fresh",
-    icon: "📒",
+    icon: "album",
     label: (n) => `Ajoute ${n} nouvelles cartes à ton album`,
     variants: {
       day: [
@@ -114,7 +115,7 @@ export const QUEST_TEMPLATES: Template[] = [
   },
   {
     id: "workshop",
-    icon: "🛠️",
+    icon: "wrench",
     label: (n) => (n > 1 ? `Fais ${n} actions à l'atelier` : "Fais une action à l'atelier"),
     variants: {
       day: [{ goal: 1, reward: { coins: 15 } }],
@@ -124,7 +125,7 @@ export const QUEST_TEMPLATES: Template[] = [
   },
   {
     id: "recycled",
-    icon: "♻️",
+    icon: "recycle",
     label: (n) => `Recycle ${n} doublons à l'atelier`,
     variants: {
       day: [
@@ -195,7 +196,7 @@ export function questsFor(period: Period, key: string): Quest[] {
   const info = periodInfo(period);
   return [
     ...quests,
-    { id: "all", icon: "🏆", label: `Termine toutes les quêtes ${info.of}`, goal: quests.length, reward: info.allReward },
+    { id: "all", icon: "check", label: `Termine toutes les quêtes ${info.of}`, goal: quests.length, reward: info.allReward },
   ];
 }
 

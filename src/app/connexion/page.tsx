@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { cloudEnabled, sendMagicLink, signOut, useCloud } from "@/lib/cloud";
 import { useStore } from "@/lib/store";
+import { Icon } from "@/components/Icon";
 
 export default function LoginPage() {
   const cloud = useCloud();
@@ -31,8 +32,8 @@ export default function LoginPage() {
     const syncLabel = {
       idle: "",
       saving: "Enregistrement…",
-      saved: "✓ Tout est enregistré sur ton compte",
-      error: "⚠ Enregistrement impossible pour le moment, on réessaiera à ta prochaine action",
+      saved: "Tout est enregistré sur ton compte",
+      error: "Enregistrement impossible pour le moment, on réessaiera à ta prochaine action",
     }[cloud.sync];
     return (
       <>
@@ -75,7 +76,7 @@ export default function LoginPage() {
       <h1>Se connecter</h1>
       {sentTo ? (
         <div className="account-box">
-          <p className="big-emoji">📬</p>
+          <p className="big-emoji"><Icon name="check" size={28} /></p>
           <p>
             Un lien de connexion vient d&apos;être envoyé à <strong>{sentTo}</strong>.
           </p>

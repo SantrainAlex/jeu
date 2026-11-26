@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { Lives, Stream } from "@/lib/twitch";
+import { Icon } from "./Icon";
+import { ExternalLabel } from "./ExternalLabel";
 
 type State = { status: "loading" } | { status: "off" } | ({ status: "ok" } & Lives);
 
@@ -79,7 +81,7 @@ export function LiveStreams({ name, igdbId }: { name: string; igdbId: number | n
                 </span>
                 <span className="live-player-actions">
                   <a href={`https://www.twitch.tv/${playing.channel}`} target="_blank" rel="noreferrer" className="link">
-                    Ouvrir sur Twitch ↗
+                    <ExternalLabel>Ouvrir sur Twitch</ExternalLabel>
                   </a>
                   <button type="button" className="chip" onClick={() => setPlaying(null)}>Fermer</button>
                 </span>
@@ -98,8 +100,8 @@ export function LiveStreams({ name, igdbId }: { name: string; igdbId: number | n
                   <span className="live-thumb">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={s.thumbnail} alt="" loading="lazy" />
-                    <span className="live-badge">LIVE</span>
-                    <span className="live-viewers mono">{viewers(s.viewers)} 👁</span>
+                    <span className="live-badge"><span className="live-badge-dot" aria-hidden="true" />LIVE</span>
+                    <span className="live-viewers mono"><Icon name="eye" size={14} /> {viewers(s.viewers)}</span>
                   </span>
                   <span className="live-info">
                     <strong>

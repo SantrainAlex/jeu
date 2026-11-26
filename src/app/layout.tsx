@@ -6,29 +6,25 @@ import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
 import { SITE_NAME, SITE_TITLE } from "@/lib/site";
 
-// Titres « gaming », texte lisible, et chiffres à chasse fixe (notes, pourcentages, numéros).
-// Les polices sont rangées avec le site (dossier fonts/) : la mise en ligne ne dépend plus de Google Fonts,
+// Design Raidly : Bricolage Grotesque pour les titres, Schibsted Grotesk pour le texte,
+// Martian Mono pour les chiffres et les surtitres.
+// Les polices sont rangées avec le site (dossier fonts/) : la mise en ligne ne dépend pas de Google Fonts,
 // qui faisait parfois échouer la construction sur Vercel.
 const display = localFont({
-  src: [
-    { path: "./fonts/chakra-petch-latin-500-normal.woff2", weight: "500" },
-    { path: "./fonts/chakra-petch-latin-600-normal.woff2", weight: "600" },
-    { path: "./fonts/chakra-petch-latin-700-normal.woff2", weight: "700" },
-  ],
+  src: "./fonts/bricolage-grotesque-latin-var.woff2",
+  weight: "500 800",
   variable: "--font-display",
   display: "swap",
 });
 const body = localFont({
-  src: "./fonts/inter-latin-wght-normal.woff2",
-  weight: "100 900",
+  src: "./fonts/schibsted-grotesk-latin-var.woff2",
+  weight: "400 800",
   variable: "--font-body",
   display: "swap",
 });
 const mono = localFont({
-  src: [
-    { path: "./fonts/jetbrains-mono-latin-400-normal.woff2", weight: "400" },
-    { path: "./fonts/jetbrains-mono-latin-700-normal.woff2", weight: "700" },
-  ],
+  src: "./fonts/martian-mono-latin-var.woff2",
+  weight: "400 700",
   variable: "--font-mono",
   display: "swap",
 });
@@ -42,11 +38,11 @@ export const metadata: Metadata = {
   icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
-export const viewport: Viewport = { themeColor: "#0a0b0f" };
+export const viewport: Viewport = { themeColor: "#13110e" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="fr" data-theme="dark" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
         <CloudStarter />
         <SiteNav />

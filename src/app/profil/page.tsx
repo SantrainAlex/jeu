@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PLATFORMS } from "@/lib/platforms";
 import { togglePlatform, useStore } from "@/lib/store";
 import { UsernameForm } from "@/components/UsernameForm";
+import { PlatformMark } from "@/components/PlatformMark";
 
 export default function ProfilePage() {
   const [{ profile, ratings }, ready] = useStore();
@@ -32,7 +33,7 @@ export default function ProfilePage() {
           {PLATFORMS.map((p) => (
             <tr key={p.slug}>
               <td>
-                <span className="dot" style={{ background: p.color }} /> {p.name}
+                <span className="platform-with-mark"><PlatformMark slug={p.slug} size="sm" /> {p.name}</span>
               </td>
               {(["owned", "interested"] as const).map((list) => (
                 <td key={list}>

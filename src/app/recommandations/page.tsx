@@ -17,6 +17,8 @@ import {
   type RecoSort,
 } from "@/lib/reco";
 import { useStore } from "@/lib/store";
+import { Icon } from "@/components/Icon";
+import { PlatformMark } from "@/components/PlatformMark";
 
 type State = { status: "idle" | "loading" | "done" | "error"; games: Game[]; demo: boolean };
 
@@ -75,8 +77,8 @@ export default function RecommendationsPage() {
     { id: "toutes", label: "Toutes mes consoles" },
     ...(profile.owned.length && platformsFor("interesse", profile).length
       ? [
-          { id: "jai", label: "🎮 Celles que j'ai" },
-          { id: "interesse", label: "⭐ Qui m'intéressent" },
+          { id: "jai", label: "Celles que j'ai" },
+          { id: "interesse", label: "Qui m'intéressent" },
         ]
       : []),
     ...(mine.length > 1 ? mine.map((slug) => ({ id: slug, label: getPlatform(slug)?.short ?? slug })) : []),
@@ -156,7 +158,7 @@ export default function RecommendationsPage() {
                   aria-pressed={filters.strongOnly}
                   onClick={() => set({ strongOnly: !filters.strongOnly })}
                 >
-                  💖 Coups de cœur seulement
+                  Coups de cœur seulement
                 </button>
               </div>
             </div>
@@ -186,7 +188,7 @@ export default function RecommendationsPage() {
                 extra={
                   <>
                     <p className="reason">
-                      {isStrongMatch(g, tastes) ? "💖 Coup de cœur probable" : "Ça peut te plaire"} · tu aimes{" "}
+                      <Icon name="chat" size={14} /> {isStrongMatch(g, tastes) ? "Coup de cœur probable" : "Ça peut te plaire"} · tu aimes{" "}
                       {g.reasons.join(", ")}
                     </p>
                     <div className="tags">
@@ -199,9 +201,8 @@ export default function RecommendationsPage() {
                             className={owned ? "tag platform-tag owned" : "tag platform-tag"}
                             title={owned ? "Tu as cette console" : "Cette console t'intéresse"}
                           >
-                            <span className="dot" style={{ background: p?.color }} />
+                            <PlatformMark slug={slug} size="sm" />
                             {p?.short ?? slug}
-                            {owned ? " ✓" : ""}
                           </span>
                         );
                       })}

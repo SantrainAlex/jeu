@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { gameHref } from "@/lib/details";
 import type { Game } from "@/lib/types";
+import { Icon } from "./Icon";
 import { RatingStars } from "./RatingStars";
 
 export function GameCard({ game, extra }: { game: Game; extra?: React.ReactNode }) {
@@ -30,7 +31,11 @@ export function GameCard({ game, extra }: { game: Game; extra?: React.ReactNode 
             <span key={g.slug} className="tag">{g.name}</span>
           ))}
         </div>
-        {game.rating > 0 && <p className="rating">★ {game.rating.toFixed(1)} / 5</p>}
+        {game.rating > 0 && (
+          <p className="rating">
+            <Icon name="star" size={14} filled /> {game.rating.toFixed(1).replace(".", ",")} / 5
+          </p>
+        )}
         {game.sources.length > 0 && (
           <p className="sources">Source : {game.sources.map((s) => (s === "rawg" ? "RAWG" : "IGDB")).join(" + ")}</p>
         )}

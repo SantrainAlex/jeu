@@ -6,6 +6,7 @@ import { TradingCard } from "@/components/TradingCard";
 import type { Card } from "@/lib/cards";
 import { gameHref } from "@/lib/details";
 import type { Finish } from "@/lib/data";
+import { Icon } from "./Icon";
 
 export type ViewedCard = {
   card: Card;
@@ -17,6 +18,16 @@ export type ViewedCard = {
   /** la carte arrive face cachée puis se retourne toute seule (carte qu'on vient de gagner) */
   reveal?: boolean;
 };
+
+/**
+ * Position du reflet (holo, brillance) selon l'inclinaison de la carte : il glisse d'un bord à l'autre
+ * quand la carte tourne, et monte ou descend quand on la penche. Carte posée à plat : reflet au centre.
+ */
+function shine(angle: number, tilt: number) {
+  // angle ramené entre -90° et 90° autour du côté visible
+  const a = ((((angle + 90) % 180) + 180) % 180) - 90;
+  return { "--vx": `${50 + (a / 90) * 70}%`, "--vy": `${50 - (tilt / 18) * 40}%` };
+}
 
 /** angle de la carte arrondi au côté le plus proche (0 = face, 180 = dos, 360 = face…) */
 const snap = (deg: number) => Math.round(deg / 180) * 180;
@@ -31,7 +42,8 @@ export function useCardViewer() {
   const [shown, setShown] = useState<ViewedCard | null>(null);
   const [angle, setAngle] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const drag = useRef<{ x: number; start: number; width: number; moved: boolean } | null>(null);
+  const [tilt, setTilt] = useState(0);
+  const drag = useRef<{ x: number; y: number; start: number; width: number; moved: boolean } | null>(null);
 
   const open = useCallback((c: ViewedCard) => {
     setShown(c);
@@ -50,38 +62,25 @@ export function useCardViewer() {
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, start: angle, width: e.currentTarget.offsetWidth || 300, moved: false };
+    drag.current = { x: e.clientX, y: e.clientY, start: angle, width: e.currentTarget.offsetWidth || 300, moved: false };
     setDragging(true);
   };
-  // reflets (holo, brillance) : ils suivent le doigt ou la souris, comme dans l'album
-  const light = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    const r = el.getBoundingClientRect();
-    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-    el.style.setProperty("--vx", `${x * 100}%`);
-    el.style.setProperty("--vy", `${y * 100}%`);
-    el.dataset.live = "1";
-  };
-  const unlight = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (drag.current) return;
-    delete e.currentTarget.dataset.live;
-  };
-
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    light(e);
     const d = drag.current;
     if (!d) return;
     const dx = e.clientX - d.x;
-    if (Math.abs(dx) > 6) d.moved = true;
-    // glisser sur toute la largeur de la carte ≈ un demi-tour
+    const dy = e.clientY - d.y;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) d.moved = true;
+    // glisser sur toute la largeur de la carte ≈ un demi-tour ; glisser en hauteur penche un peu la carte
     setAngle(d.start + (dx / d.width) * 200);
+    setTilt(Math.max(-18, Math.min(18, (-dy / d.width) * 40)));
   };
   const onPointerUp = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
     drag.current = null;
     setDragging(false);
+    setTilt(0);
     const dx = e.clientX - d.x;
     if (!d.moved) {
       setAngle(d.start + 180); // simple appui : on retourne
@@ -108,7 +107,7 @@ export function useCardViewer() {
           {shown.title && <p className="card-viewer-title">{shown.title}</p>}
           <div
             className={dragging ? "card-viewer-card dragging" : "card-viewer-card"}
-            style={{ "--flip": `${angle}deg` } as React.CSSProperties}
+            style={{ "--flip": `${angle}deg`, "--tilt": `${tilt}deg`, ...shine(angle, tilt) } as React.CSSProperties}
             role="button"
             tabIndex={0}
             aria-label={`${shown.card.name} : ${backSide ? "dos" : "face"} de la carte. Glisse ou appuie pour la retourner.`}
@@ -116,7 +115,6 @@ export function useCardViewer() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            onPointerLeave={unlight}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " " || e.key === "ArrowRight") {
                 e.preventDefault();
@@ -129,12 +127,12 @@ export function useCardViewer() {
           >
             <TradingCard card={shown.card} vitrail={shown.vitrail} count={shown.count} finish={shown.finish} />
           </div>
-          <p className="card-viewer-hint muted">↔ Glisse la carte pour la retourner</p>
+          <p className="card-viewer-hint muted">Glisse la carte pour la retourner</p>
           <Link href={gameHref(shown.card)} className="button">
             Voir la fiche du jeu
           </Link>
           <button type="button" className="lightbox-close" onClick={close} aria-label="Fermer">
-            ✕
+            <Icon name="close" size={20} />
           </button>
         </div>
       )}
