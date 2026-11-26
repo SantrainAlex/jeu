@@ -18,7 +18,6 @@ export function TradingCard({
   badge,
   finish,
   hidden = false,
-  flipped = false,
   onReveal,
   onOpen,
   style,
@@ -29,8 +28,6 @@ export function TradingCard({
   badge?: "new" | "dup";
   finish?: Finish;
   hidden?: boolean;
-  /** montre le dos de la carte (vue en grand) */
-  flipped?: boolean;
   onReveal?: () => void;
   /** clic sur une carte déjà retournée : l'ouvrir en grand */
   onOpen?: () => void;
@@ -39,7 +36,7 @@ export function TradingCard({
   const ref = useRef<HTMLButtonElement>(null);
   const r = rarityInfo(card.rarity);
   const year = card.released?.slice(0, 4);
-  const className = ["tcard", `rarity-${card.rarity}`, vitrail ? "vitrail" : "", finish ? `finish-${finish}` : "", hidden ? "hidden" : "revealed", flipped ? "flipped" : "", onOpen && !hidden ? "zoomable" : ""].join(" ");
+  const className = ["tcard", `rarity-${card.rarity}`, vitrail ? "vitrail" : "", finish ? `finish-${finish}` : "", hidden ? "hidden" : "revealed", onOpen && !hidden ? "zoomable" : ""].join(" ");
 
   // position de la souris sur la carte → inclinaison et reflet
   const onMove = (e: React.PointerEvent) => {
