@@ -21,6 +21,8 @@ import {
   type PulledCard,
 } from "@/lib/cards";
 import { runCardAction } from "@/lib/cardClient";
+import { coins } from "@/lib/data";
+import { BOOSTER_PRICE } from "@/lib/workshop";
 import { cloudEnabled, getVitrailsLeft, useCloud } from "@/lib/cloud";
 import {
   PERIODS,
@@ -140,6 +142,36 @@ export default function CardsPage() {
     </button>
   ));
 
+  // acheter un booster avec ses pièces (le serveur vérifie le solde et retire les pièces)
+  const wallet = coins(collection);
+  const [buyMsg, setBuyMsg] = useState<string | null>(null);
+  const buy = async () => {
+    if (!pool || busy) return;
+    setActionError(null);
+    setBuyMsg(null);
+    setBusy(true);
+    const res = await runCardAction({ type: "buyBooster" }, pool.cards);
+    setBusy(false);
+    if ("error" in res) setActionError(res.error);
+    else setBuyMsg(`Booster acheté pour ${BOOSTER_PRICE} pièces !`);
+  };
+  const buyBox = (
+    <div className="booster-buy">
+      <button
+        type="button"
+        className="button ghost"
+        disabled={!ready || !pool || busy || signedOutWithAccounts || wallet < BOOSTER_PRICE}
+        onClick={buy}
+      >
+        Acheter un booster · <span className="mono">{BOOSTER_PRICE}</span> pièces
+      </button>
+      <span className="muted small">
+        <span className="coin" aria-hidden="true" /> {ready ? wallet.toLocaleString("fr-FR") : "…"} pièce{wallet > 1 ? "s" : ""}
+      </span>
+      {buyMsg && <span className="small" role="status">{buyMsg}</span>}
+    </div>
+  );
+
   const claim = async (period: Period, id: QuestId) => {
     if (!pool || claiming) return;
     setQuestMsg(null);
@@ -237,7 +269,10 @@ export default function CardsPage() {
                       {multiButtons.length > 0 && <div className="booster-multi">{multiButtons}</div>}
                     </>
                   ) : (
-                    <Link href="/cartes/album" className="button big">Voir mon album <Icon name="arrow-right" size={18} /></Link>
+                    <>
+                      <Link href="/cartes/album" className="button big">Voir mon album <Icon name="arrow-right" size={18} /></Link>
+                      {buyBox}
+                    </>
                   )}
                   <PackSummary cards={pulled} packs={opened} />
                 </>
@@ -266,6 +301,7 @@ export default function CardsPage() {
                       : "Préparation des cartes…"}
               </button>
               {multiButtons.length > 0 && <div className="booster-multi">{multiButtons}</div>}
+              {buyBox}
               {signedOutWithAccounts && cloud.status === "signedOut" && (
                 <p className="muted small">
                   <Link href="/connexion">Connecte-toi</Link> pour ouvrir tes boosters : ta collection est gardée sur ton compte.
@@ -283,7 +319,7 @@ export default function CardsPage() {
           </li>
           <li>
             <Icon name="recycle" size={16} /> Tes doublons servent à l&apos;<Link href="/cartes/atelier">atelier</Link> : recycle-les en pièces, fabrique
-            les cartes qui te manquent ou passe-les en argent et en or
+            les cartes qui te manquent ou passe-les en argent et en or. Avec {BOOSTER_PRICE} pièces, tu peux aussi acheter un booster
           </li>
           <li><Icon name="check" size={16} /> Termine les quêtes du jour, de la semaine et du mois (juste en dessous) pour gagner des boosters et des pièces en plus</li>
         </ul>

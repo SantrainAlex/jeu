@@ -3,7 +3,8 @@
  * - recycler des doublons en pièces ;
  * - fabriquer une carte qui manque avec ses pièces ;
  * - échanger plusieurs doublons d'une rareté contre une carte au hasard de la rareté au-dessus ;
- * - passer une carte en finition argent puis or.
+ * - passer une carte en finition argent puis or ;
+ * - acheter un booster avec ses pièces.
  * Règle d'or : ton dernier exemplaire d'une carte n'est jamais utilisé.
  */
 import { RARITIES, type Card, type Rarity } from "./cards";
@@ -22,6 +23,18 @@ export const RECYCLE_VALUE: Record<Rarity, number> = {
 export const CRAFT_PRICE: Record<Rarity, number> = Object.fromEntries(
   Object.entries(RECYCLE_VALUE).map(([r, v]) => [r, v * 8]),
 ) as Record<Rarity, number>;
+
+/** Prix d'un booster acheté avec ses pièces. */
+export const BOOSTER_PRICE = 150;
+
+/**
+ * Achète un booster : retire les pièces et ajoute un booster en plus (il s'ajoute à la réserve, sans limite).
+ * Renvoie null s'il n'y a pas assez de pièces.
+ */
+export function buyBooster(c: Collection): Collection | null {
+  if (coins(c) < BOOSTER_PRICE) return null;
+  return { ...c, coinsSpent: c.coinsSpent + BOOSTER_PRICE, extraPacks: (c.extraPacks ?? 0) + 1 };
+}
 
 /** Nombre de doublons d'une rareté à donner pour une carte de la rareté au-dessus. */
 export const TRADE_UP_COUNT = 5;

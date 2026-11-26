@@ -720,6 +720,8 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 
 .pack-summary { font-size: 0.9rem; }
 .booster-multi { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+.booster-buy { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-top: 0.75rem; }
+.booster-buy .coin { width: 14px; height: 14px; vertical-align: -2px; }
 .sort-select { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: auto; font-size: 0.85rem; }
 .sort-select select {
   background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
@@ -1105,6 +1107,7 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
   .booster-zone { padding: 1.25rem; }
   .booster-closed { flex-direction: column; text-align: center; gap: 1.25rem; }
   .booster-closed { gap: 1.5rem; }
+  .booster-closed .booster-multi, .booster-closed .booster-buy { justify-content: center; }
 }
 
 @media (max-width: 400px) {
