@@ -1,6 +1,6 @@
 import { cleanDescription, type GameDetails } from "./details";
 import { genre } from "./genres";
-import { isSameGame } from "./merge";
+import { isSameGame, normalizeTitle } from "./merge";
 import type { Game, Genre } from "./types";
 
 const API = "https://api.rawg.io/api";
@@ -19,15 +19,22 @@ export function hasRawg() {
   return Boolean(process.env.RAWG_API_KEY);
 }
 
-async function query(params: Record<string, string>): Promise<Game[]> {
+async function fetchGames(params: Record<string, string>): Promise<RawgGame[]> {
   const search = new URLSearchParams({ key: process.env.RAWG_API_KEY ?? "", page_size: "40", ...params });
   const res = await fetch(`${API}/games?${search}`, {
     // On garde la réponse en cache 1 heure pour ne pas épuiser le quota RAWG
     next: { revalidate: 3600 },
   });
   if (!res.ok) throw new Error(`RAWG a répondu ${res.status}`);
-  const data = (await res.json()) as { results: RawgGame[] };
-  return data.results.map((g) => ({
+  return ((await res.json()) as { results: RawgGame[] }).results;
+}
+
+async function query(params: Record<string, string>): Promise<Game[]> {
+  return (await fetchGames(params)).map(toGame);
+}
+
+function toGame(g: RawgGame): Game {
+  return {
     id: g.id,
     slug: g.slug,
     name: g.name,
@@ -36,7 +43,7 @@ async function query(params: Record<string, string>): Promise<Game[]> {
     rating: g.rating,
     genres: (g.genres ?? []).map((x) => genre(x.slug, x.name)),
     sources: ["rawg"],
-  }));
+  };
 }
 
 /** Identifiant RAWG d'une plateforme d'après son nom exact (null si RAWG ne la connaît pas). Mis en cache 1 jour. */
@@ -71,15 +78,33 @@ export function rawgCatalog(platformIds: number[], opts: { query?: string; sort:
     platforms: platformIds.join(","),
     page: String(opts.page),
     page_size: String(opts.pageSize),
-    dates: `1970-01-01,${today}`, // seulement les jeux déjà sortis
   };
   if (opts.query) {
+    // Pas de filtre de date pendant une recherche : beaucoup de petits jeux n'ont pas de date connue chez RAWG
+    // et disparaîtraient des résultats.
     params.search = opts.query;
     params.search_precise = "true";
   } else {
+    params.dates = `1970-01-01,${today}`; // seulement les jeux déjà sortis
     params.ordering = ordering;
   }
   return query(params);
+}
+
+/**
+ * Les jeux qui portent exactement ce titre, pour qu'une recherche par nom complet les trouve toujours.
+ * On ne filtre pas la plateforme chez RAWG (certaines fiches n'en ont pas) : on écarte seulement
+ * les jeux dont RAWG connaît les plateformes et qui ne sont sur aucune de celles demandées.
+ */
+export async function rawgExactTitle(platformIds: number[], title: string): Promise<Game[]> {
+  const found = (await fetchGames({ search: title, search_exact: "true", page_size: "10" })) as (RawgGame & {
+    platforms?: { platform: { id: number } }[] | null;
+  })[];
+  const wanted = normalizeTitle(title);
+  return found
+    .filter((g) => normalizeTitle(g.name) === wanted)
+    .filter((g) => !g.platforms?.length || g.platforms.some((p) => platformIds.includes(p.platform.id)))
+    .map(toGame);
 }
 
 /** Les jeux les plus populaires toutes plateformes confondues (pour les cartes à collectionner). */

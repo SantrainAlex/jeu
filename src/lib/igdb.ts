@@ -1,6 +1,6 @@
 import { genreFromIgdb, igdbIdsForGenres } from "./genres";
 import { cleanDescription, type GameDetails } from "./details";
-import { isSameGame } from "./merge";
+import { isSameGame, normalizeTitle } from "./merge";
 import type { Game } from "./types";
 
 /**
@@ -114,12 +114,13 @@ export function igdbCatalog(
   opts: { query?: string; sort: "populaires" | "notes" | "recents"; page: number; pageSize: number },
 ) {
   const now = Math.floor(Date.now() / 1000);
-  const base = `platforms = (${platformIds.join(",")}) & version_parent = null & first_release_date <= ${now}`;
+  const onPlatforms = `platforms = (${platformIds.join(",")}) & version_parent = null`;
+  const base = `${onPlatforms} & first_release_date <= ${now}`;
   const paging = `limit ${opts.pageSize}; offset ${(opts.page - 1) * opts.pageSize};`;
   if (opts.query) {
-    // IGDB ne permet pas de trier une recherche : elle est classée par pertinence
-    const q = opts.query.replace(/["\\]/g, " ").trim();
-    return query(`search "${q}"; where ${base}; ${paging}`);
+    // IGDB ne permet pas de trier une recherche : elle est classée par pertinence.
+    // Pas de filtre de date : un jeu sans date connue serait écarté.
+    return query(`search "${clean(opts.query)}"; where ${onPlatforms}; ${paging}`);
   }
   const sort = {
     populaires: `where ${base} & total_rating_count >= 1; sort total_rating_count desc;`,
@@ -127,6 +128,23 @@ export function igdbCatalog(
     recents: `where ${base}; sort first_release_date desc;`,
   }[opts.sort];
   return query(`${sort} ${paging}`);
+}
+
+const clean = (text: string) => text.replace(/["\\]/g, " ").trim();
+
+/**
+ * Les jeux qui portent exactement ce titre (sans tenir compte des majuscules), pour qu'une recherche
+ * par nom complet les trouve toujours. Un jeu dont IGDB ne connaît pas les plateformes est gardé.
+ */
+export async function igdbExactTitle(platformIds: number[], title: string): Promise<Game[]> {
+  const found = await post<IgdbGame & { platforms?: number[] }>(
+    `${FIELDS.replace(";", ",platforms;")} where name ~ "${clean(title)}" & version_parent = null; limit 10;`,
+  );
+  const wanted = normalizeTitle(title);
+  return found
+    .filter((g) => normalizeTitle(g.name) === wanted)
+    .filter((g) => !g.platforms?.length || g.platforms.some((p) => platformIds.includes(p)))
+    .map(toGame);
 }
 
 /** Les jeux les plus populaires toutes plateformes confondues (pour les cartes à collectionner). */
