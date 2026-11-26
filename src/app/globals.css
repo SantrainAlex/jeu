@@ -824,19 +824,16 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .card-viewer-card:focus-visible .tcard-front, .card-viewer-card:focus-visible .tcard-back { outline: 3px solid var(--primary); outline-offset: 3px; }
 .card-viewer .tcard { width: 100%; cursor: inherit; pointer-events: none; }
 /* la carte suit le doigt ou la souris, puis se pose sur sa face ou son dos */
-.card-viewer .tcard-inner { transform: rotateY(var(--flip, 0deg)); transition: transform 0.5s var(--ease); }
+.card-viewer .tcard-inner { transform: rotateX(var(--tilt, 0deg)) rotateY(var(--flip, 0deg)); transition: transform 0.5s var(--ease); }
 .card-viewer .dragging .tcard-inner { transition: none; }
 .card-viewer-hint { margin: 0; font-size: 0.9rem; }
-/* en grand, les reflets restent visibles : ils suivent le doigt ou la souris, et bougent tout seuls sinon */
+/* en grand, les reflets suivent les mouvements de la carte (rotation, inclinaison), pas la souris */
+@property --vx { syntax: "<percentage>"; inherits: true; initial-value: 50%; }
+@property --vy { syntax: "<percentage>"; inherits: true; initial-value: 50%; }
+.card-viewer-card { transition: --vx 0.5s var(--ease), --vy 0.5s var(--ease); }
+.card-viewer-card.dragging { transition: none; }
 .card-viewer .tcard { --mx: var(--vx, 50%); --my: var(--vy, 50%); --glare: 0.7; }
-.card-viewer-card[data-live] .tcard { --glare: 1; }
-.card-viewer-card:not([data-live]) .tcard-holo { animation: holo-drift 5s ease-in-out infinite alternate; }
-.card-viewer-card:not([data-live]) .tcard-glare { animation: glare-drift 5s ease-in-out infinite alternate; }
-@keyframes holo-drift { from { background-position: 0% 0%, center; } to { background-position: 100% 100%, center; } }
-@keyframes glare-drift {
-  from { background: radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.45), transparent 45%); }
-  to { background: radial-gradient(circle at 80% 85%, rgba(255, 255, 255, 0.45), transparent 45%); }
-}
+.card-viewer .dragging .tcard { --glare: 1; }
 .card-viewer-title { margin: 0; font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 1.35rem; text-align: center; }
 .card-viewer .tcard-name { font-size: 1.25rem; padding: 0.8rem 0.9rem 0.15rem; }
 .card-viewer .tcard-meta { font-size: 0.9rem; padding: 0 0.9rem 0.8rem; }
