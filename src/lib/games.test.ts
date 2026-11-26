@@ -173,17 +173,55 @@ describe("page Switch", () => {
 describe("getCatalog", () => {
   it("cherche sur les deux sources et fusionne les doublons", async () => {
     const { getCatalog } = await import("./games");
-    const result = await getCatalog(getPlatform("switch")!, { query: 'Mario "Kart"', sort: "populaires", page: 2 });
+    const result = await getCatalog(getPlatform("switch")!, { query: 'Mario "Kart"', sort: "populaires", page: 1 });
 
     expect(result.games.map((g) => g.name)).toEqual(["Mario Kart World", "Rawg Only", "Igdb Only"]);
     expect(result.hasMore).toBe(false);
 
-    const rawgUrl = String(fetchMock.mock.calls.find(([u]) => String(u).includes("rawg.io"))![0]);
+    const rawgUrl = String(fetchMock.mock.calls.find(([u]) => String(u).includes("rawg.io") && String(u).includes("page=1"))![0]);
     expect(rawgUrl).toContain("search=Mario");
-    expect(rawgUrl).toContain("page=2");
-    const igdbBody = String(igdbGameCalls()[0][1]?.body);
+    const igdbBody = String(igdbGameCalls().find(([, i]) => String(i?.body).includes("offset 0;"))![1]?.body);
     expect(igdbBody).toContain('search "Mario  Kart";');
-    expect(igdbBody).toContain("offset 24;");
+  });
+});
+
+describe("pages du catalogue", () => {
+  const rawgGame = (id: number, name: string) => ({ id, slug: `r${id}`, name, released: "2020-01-01", background_image: null, rating: 4 });
+  const igdbGame = (id: number, name: string) => ({ id, slug: `i${id}`, name, first_release_date: 1577836800 });
+
+  // RAWG et IGDB ne rangent pas les jeux dans le même ordre :
+  // « Zelda » est en page 1 chez RAWG mais seulement en page 2 chez IGDB ;
+  // IGDB renvoie aussi « Metroid » deux fois (deux jeux à égalité qui changent de place entre deux pages).
+  function pagedSources(url: string, init?: RequestInit) {
+    if (url.includes("id.twitch.tv")) return Promise.resolve(new Response(JSON.stringify({ access_token: "t", expires_in: 3600 })));
+    if (url.includes("igdb.com")) {
+      const second = String(init?.body).includes("offset 24;");
+      const games = second ? [igdbGame(3, "Zelda"), igdbGame(4, "Metroid"), igdbGame(5, "Kirby")] : [igdbGame(4, "Metroid"), igdbGame(6, "Pikmin")];
+      return Promise.resolve(new Response(JSON.stringify(games)));
+    }
+    const second = url.includes("page=2");
+    const results = second ? [rawgGame(20, "Splatoon")] : [rawgGame(10, "Zelda"), rawgGame(11, "Mario")];
+    return Promise.resolve(new Response(JSON.stringify({ results })));
+  }
+
+  it("ne remontre jamais en page 2 un jeu déjà vu en page 1", async () => {
+    fetchMock.mockImplementation(pagedSources);
+    const { getCatalog } = await import("./games");
+    const page1 = await getCatalog(getPlatform("pc")!, { sort: "populaires", page: 1 });
+    const page2 = await getCatalog(getPlatform("pc")!, { sort: "populaires", page: 2 });
+
+    expect(page1.games.map((g) => g.name)).toEqual(["Zelda", "Mario", "Metroid", "Pikmin"]);
+    expect(page2.games.map((g) => g.name)).toEqual(["Splatoon", "Kirby"]);
+  });
+
+  it("ne remontre pas en page 2 d'une recherche le jeu au titre exact déjà mis en tête de la page 1", async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes("search_exact=true")) return Promise.resolve(new Response(JSON.stringify({ results: [rawgGame(30, "Kirby")] })));
+      return pagedSources(url, init);
+    });
+    const { getCatalog } = await import("./games");
+    const page2 = await getCatalog(getPlatform("pc")!, { query: "Kirby", sort: "populaires", page: 2 });
+    expect(page2.games.map((g) => g.name)).not.toContain("Kirby");
   });
 });
 
