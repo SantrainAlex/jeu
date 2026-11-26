@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
+import { useCardViewer } from "@/components/CardViewer";
 import { TradingCard } from "@/components/TradingCard";
 import { RARITIES, type Card, type Rarity } from "@/lib/cards";
 import { coins, copies } from "@/lib/data";
@@ -22,6 +23,7 @@ export default function AlbumPage() {
   const [filter, setFilter] = useState<Rarity | "tout">("tout");
   const [onlyDups, setOnlyDups] = useState(false);
   const [sort, setSort] = useState<Sort>("rarete");
+  const viewer = useCardViewer();
 
   useEffect(() => {
     fetch("/api/cartes")
@@ -116,7 +118,12 @@ export default function AlbumPage() {
           <h2>Vitraux numérotés</h2>
           <div className="card-grid">
             {collection.vitraux.map((v) => (
-              <TradingCard key={v.number} card={v.card} vitrail={v.number} />
+              <TradingCard
+                key={v.number}
+                card={v.card}
+                vitrail={v.number}
+                onOpen={() => viewer.open({ card: v.card, vitrail: v.number })}
+              />
             ))}
           </div>
           <h2>Cartes</h2>
@@ -135,10 +142,17 @@ export default function AlbumPage() {
       ) : (
         <div className="card-grid">
           {shown.map((o) => (
-            <TradingCard key={o.card.id} card={o.card} count={copies(o)} finish={o.finish} />
+            <TradingCard
+              key={o.card.id}
+              card={o.card}
+              count={copies(o)}
+              finish={o.finish}
+              onOpen={() => viewer.open({ card: o.card, count: copies(o), finish: o.finish })}
+            />
           ))}
         </div>
       )}
+      {viewer.element}
     </>
   );
 }

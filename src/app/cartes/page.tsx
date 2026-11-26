@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
+import { useCardViewer } from "@/components/CardViewer";
 import { TradingCard } from "@/components/TradingCard";
 import {
   MAX_STOCK,
@@ -31,6 +32,7 @@ export default function CardsPage() {
   const [error, setError] = useState(false);
   const [pulled, setPulled] = useState<PulledCard[] | null>(null);
   const [revealed, setRevealed] = useState<number>(0);
+  const viewer = useCardViewer();
   // « tearing » : le pack se déchire avant que les cartes n'apparaissent
   const [tearing, setTearing] = useState(false);
   // éclair de couleur quand une carte rare est retournée (la clé relance l'animation)
@@ -141,10 +143,12 @@ export default function CardsPage() {
                   badge={i < revealed ? (c.isNew ? "new" : "dup") : undefined}
                   hidden={i >= revealed}
                   onReveal={() => i === revealed && reveal(revealed + 1)}
+                  onOpen={() => viewer.open({ card: c, vitrail: c.vitrail })}
                   style={{ animationDelay: `${i * 90}ms` }}
                 />
               ))}
             </div>
+            {viewer.element}
             <div className="booster-actions">
               {!allRevealed ? (
                 <>
