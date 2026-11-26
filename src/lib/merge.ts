@@ -45,6 +45,7 @@ function combine(a: Game, b: Game): Game {
     name: a.name,
     released: dates[0] ?? null,
     image: a.image ?? b.image,
+    ...(a.cover || b.cover ? { cover: a.cover ?? b.cover } : {}),
     rating: ratings.length ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10 : 0,
     genres,
     sources: [...new Set([...a.sources, ...b.sources])],

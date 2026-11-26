@@ -79,6 +79,7 @@ function toGame(g: IgdbGame): Game {
     name: g.name,
     released: g.first_release_date ? new Date(g.first_release_date * 1000).toISOString().slice(0, 10) : null,
     image: imageUrl(g),
+    cover: g.cover ? `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${g.cover.image_id}.jpg` : null,
     rating: g.total_rating ? Math.round(g.total_rating / 2) / 10 : 0,
     // un même genre commun peut venir de plusieurs genres IGDB (ex. stratégie)
     genres: genres.filter((x, i) => genres.findIndex((y) => y.slug === x.slug) === i),
