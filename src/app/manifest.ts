@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
+import { SITE_NAME, SITE_TITLE } from "@/lib/site";
 
 /** Fiche de l'application : permet d'installer le site sur l'écran d'accueil du téléphone. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Jeu — les nouveautés par plateforme",
-    short_name: "Jeu",
+    name: SITE_TITLE,
+    short_name: SITE_NAME,
     description: "Les nouveaux jeux vidéo par plateforme, tes notes, tes recommandations et tes cartes à collectionner.",
     id: "/",
     start_url: "/",

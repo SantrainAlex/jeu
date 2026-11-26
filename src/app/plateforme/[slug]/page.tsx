@@ -5,6 +5,7 @@ import { GridSkeleton } from "@/components/GridSkeleton";
 import { PlatformTabs } from "@/components/PlatformTabs";
 import { getNewGames } from "@/lib/games";
 import { getPlatform, parsePeriod, type Period, type Platform } from "@/lib/platforms";
+import { SITE_NAME } from "@/lib/site";
 
 // La page dépend de la période choisie (?periode=...), elle est donc générée à la demande.
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const platform = getPlatform(slug);
-  return { title: platform ? `Nouveautés ${platform.name} — Jeu` : "Plateforme inconnue" };
+  return { title: platform ? `Nouveautés ${platform.name} — ${SITE_NAME}` : "Plateforme inconnue" };
 }
 
 export default async function PlatformPage({

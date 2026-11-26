@@ -4,6 +4,7 @@ import { CloudStarter } from "@/components/CloudStarter";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
+import { SITE_NAME, SITE_TITLE } from "@/lib/site";
 
 // Titres « gaming », texte lisible, et chiffres à chasse fixe (notes, pourcentages, numéros)
 const display = Chakra_Petch({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
@@ -11,11 +12,11 @@ const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Jeu — les nouveautés par plateforme",
+  title: SITE_TITLE,
   description: "Les nouveaux jeux vidéo du jour, de la semaine et du mois, plateforme par plateforme.",
-  applicationName: "Jeu",
+  applicationName: SITE_NAME,
   // iPhone : nom, icône et barre d'état quand le site est ajouté à l'écran d'accueil
-  appleWebApp: { capable: true, title: "Jeu", statusBarStyle: "black" },
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "black" },
   icons: { apple: "/icons/apple-touch-icon.png" },
 };
 

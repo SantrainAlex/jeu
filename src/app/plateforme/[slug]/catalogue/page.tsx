@@ -6,6 +6,7 @@ import { GridSkeleton } from "@/components/GridSkeleton";
 import { PlatformTabs } from "@/components/PlatformTabs";
 import { getCatalog, type CatalogSort } from "@/lib/games";
 import { getPlatform, type Platform } from "@/lib/platforms";
+import { SITE_NAME } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ function catalogHref({ platform, query, sort }: View, changes: { tri?: CatalogSo
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const platform = getPlatform((await params).slug);
-  return { title: platform ? `Catalogue ${platform.name} — Jeu` : "Plateforme inconnue" };
+  return { title: platform ? `Catalogue ${platform.name} — ${SITE_NAME}` : "Plateforme inconnue" };
 }
 
 export default async function CatalogPage({

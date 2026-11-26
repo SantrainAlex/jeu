@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AccountLink } from "./AccountLink";
+import { SITE_NAME } from "@/lib/site";
 
 type Item = { href: string; label: string; icon: React.ReactNode; match: (p: string) => boolean };
 
@@ -28,7 +29,7 @@ export function SiteNav() {
       <header className="site-header">
         <Link href="/" className="logo">
           <span className="logo-mark">J</span>
-          <span>Jeu</span>
+          <span>{SITE_NAME}</span>
         </Link>
         <nav className="top-nav" aria-label="Navigation principale">
           {ITEMS.map((it) => (

@@ -10,6 +10,7 @@ import { WhereToBuy } from "@/components/WhereToBuy";
 import { toGame, type GameDetails } from "@/lib/details";
 import { getGameDetails } from "@/lib/games";
 import { hasPrices, shopLinks } from "@/lib/shops";
+import { SITE_NAME } from "@/lib/site";
 
 // La même fiche sert au titre de l'onglet et à la page : on ne la demande qu'une fois.
 const load = cache(async (key: string) => {
@@ -23,9 +24,9 @@ const load = cache(async (key: string) => {
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
   const result = await load((await params).key);
-  if (!result || result === "error") return { title: "Fiche du jeu — Jeu" };
+  if (!result || result === "error") return { title: `Fiche du jeu — ${SITE_NAME}` };
   return {
-    title: `${result.details.name} — Jeu`,
+    title: `${result.details.name} — ${SITE_NAME}`,
     description: result.details.description?.slice(0, 160),
   };
 }
