@@ -286,3 +286,37 @@ export async function deletePerf(gameId: number, platform: string): Promise<stri
   const { error } = await sb.from("perf_reports").delete().eq("game_id", gameId).eq("platform", platform);
   return error ? "Impossible de retirer ton avis pour le moment, réessaie." : null;
 }
+
+// ---------- Échanges de cartes entre joueurs ----------
+
+/**
+ * Demande au serveur des échanges (/api/echanges). Le navigateur ne modifie jamais les cartes lui-même :
+ * après un échange accepté, il reprend simplement la collection renvoyée par le serveur.
+ */
+export async function tradesRequest<T>(query = "", action?: unknown): Promise<T | { error: string }> {
+  const sb = supabase();
+  if (!sb) return { error: "Les comptes ne sont pas configurés." };
+  const { data } = await sb.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { error: "Connecte-toi pour échanger des cartes." };
+  try {
+    const res = await fetch(`/api/echanges${query}`, {
+      method: action ? "POST" : "GET",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: action ? JSON.stringify(action) : undefined,
+      cache: "no-store",
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: body.error ?? "Action impossible pour le moment." };
+    if (body.collection) setCollection(body.collection);
+    return body as T;
+  } catch {
+    return { error: "Impossible de joindre le serveur, vérifie ta connexion internet." };
+  }
+}
+
+/** Recharge ta collection depuis le compte (un autre joueur a pu accepter un de tes échanges). */
+export async function refreshCards(): Promise<void> {
+  if (!state.userId) return;
+  await pullCards(state.userId).then(setCollection).catch(() => {});
+}
