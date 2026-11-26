@@ -279,3 +279,79 @@ $$;
 
 revoke all on function public.perf_summary(int) from public;
 grant execute on function public.perf_summary(int) to anon, authenticated;
+
+-- 8. Les échanges de cartes entre joueurs.
+--    Un joueur propose « je te donne ces cartes contre celles-là » ; l'autre accepte ou refuse, celui qui propose peut annuler.
+--    Personne ne peut écrire ici depuis son navigateur : c'est le serveur du site qui vérifie et enregistre tout.
+create table if not exists public.card_trades (
+  id uuid primary key default gen_random_uuid(),
+  from_user uuid not null references auth.users (id) on delete cascade,
+  to_user uuid not null references auth.users (id) on delete cascade,
+  -- les cartes données et demandées : [{ "id": 123, "n": 1, "card": {…} }]
+  give jsonb not null,
+  want jsonb not null,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'refused', 'cancelled', 'expired')),
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz,
+  check (from_user <> to_user)
+);
+
+create index if not exists card_trades_to on public.card_trades (to_user, status, created_at desc);
+create index if not exists card_trades_from on public.card_trades (from_user, status, created_at desc);
+
+alter table public.card_trades enable row level security;
+
+-- chacun ne voit que les échanges où il est l'un des deux joueurs
+drop policy if exists "voir ses echanges" on public.card_trades;
+create policy "voir ses echanges" on public.card_trades
+  for select to authenticated using ((select auth.uid()) in (from_user, to_user));
+
+revoke insert, update, delete, truncate on public.card_trades from anon, authenticated;
+
+--    Accepter un échange : les deux collections et l'offre sont modifiées EN UNE SEULE FOIS.
+--    Si l'offre n'est plus en attente, ou si l'une des deux collections a changé entre-temps (booster, atelier,
+--    autre échange…), rien n'est modifié : le serveur recommence avec les cartes à jour, ou refuse.
+--    Résultat : 'ok', 'closed' (offre déjà traitée) ou 'stale' (une collection a changé).
+create or replace function public.apply_trade(
+  trade uuid,
+  from_id uuid, from_version int, from_coll jsonb,
+  to_id uuid, to_version int, to_coll jsonb
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- verrouille les deux collections toujours dans le même ordre (évite que deux échanges se bloquent)
+  perform 1 from public.user_cards where user_id in (from_id, to_id) order by user_id for update;
+
+  begin
+    update public.card_trades set status = 'accepted', resolved_at = now()
+      where id = trade and status = 'pending' and from_user = from_id and to_user = to_id;
+    if not found then
+      return 'closed';
+    end if;
+
+    update public.user_cards set collection = from_coll, version = version + 1, updated_at = now()
+      where user_id = from_id and version = from_version;
+    if not found then
+      raise exception 'stale' using errcode = 'P0001';
+    end if;
+
+    update public.user_cards set collection = to_coll, version = version + 1, updated_at = now()
+      where user_id = to_id and version = to_version;
+    if not found then
+      raise exception 'stale' using errcode = 'P0001';
+    end if;
+  exception when sqlstate 'P0001' then
+    -- tout ce qui a été modifié dans ce bloc est annulé
+    return 'stale';
+  end;
+  return 'ok';
+end;
+$$;
+
+-- seul le serveur du site (clé service_role) peut faire un échange
+revoke all on function public.apply_trade(uuid, uuid, int, jsonb, uuid, int, jsonb) from public, anon, authenticated;
+grant execute on function public.apply_trade(uuid, uuid, int, jsonb, uuid, int, jsonb) to service_role;

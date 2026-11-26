@@ -76,7 +76,14 @@ export default function LeaderboardPage() {
                 {rows.map((r) => (
                   <tr key={r.username} className={me?.username === r.username ? "me" : undefined}>
                     <td className="pos">{medal(r.rank)}</td>
-                    <td className="name">{r.username}</td>
+                    <td className="name">
+                      {r.username}
+                      {cloud.status === "signedIn" && r.username && me?.username !== r.username && (
+                        <Link className="rank-trade" href={`/cartes/echanges?avec=${encodeURIComponent(r.username)}`}>
+                          Échanger
+                        </Link>
+                      )}
+                    </td>
                     <td className="num">{fmt(r.score)}</td>
                   </tr>
                 ))}
