@@ -206,6 +206,15 @@ export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovi
     // seulement les boutiques que RAWG connaît, avec un vrai lien
     stores: stores.flatMap((s) => (RAWG_STORES[s.store_id] && /^https?:\/\//.test(s.url) ? [{ name: RAWG_STORES[s.store_id], url: s.url }] : [])),
     freeToPlay: (g.tags ?? []).some((t) => t.slug === "free-to-play"),
+    // RAWG reprend les étiquettes Steam « Full / Partial Controller Support »
+    controller: (g.tags ?? []).some((t) => t.slug === "full-controller-support")
+      ? "full"
+      : (g.tags ?? []).some((t) => t.slug === "partial-controller-support")
+        ? "partial"
+        : null,
+    pcRequirements: null,
+    descriptionFr: false,
+    descriptionEn: null,
     playtime: g.playtime ?? 0,
     ageRating: g.esrb_rating ? (ESRB[g.esrb_rating.name] ?? g.esrb_rating.name) : null,
     description: cleanDescription(g.description_raw ?? g.description),

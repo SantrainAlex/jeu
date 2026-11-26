@@ -1,3 +1,4 @@
+import type { Controller, PcRequirements } from "./steam";
 import type { Game, Genre, Source } from "./types";
 
 /** Une vidéo du jeu : bande-annonce YouTube (IGDB) ou fichier vidéo (RAWG). */
@@ -35,6 +36,14 @@ export type GameDetails = {
   stores: { name: string; url: string }[];
   /** jeu gratuit (free-to-play) : rien à acheter */
   freeToPlay: boolean;
+  /** prise en charge de la manette sur PC (Steam, sinon étiquettes RAWG), null si on ne sait pas */
+  controller: Controller;
+  /** configuration PC demandée (Steam), null si inconnue */
+  pcRequirements: PcRequirements | null;
+  /** true si la description est en français */
+  descriptionFr: boolean;
+  /** description d'origine (en anglais) quand on affiche le résumé français de Steam */
+  descriptionEn: string | null;
   /** temps de jeu moyen en heures (0 si inconnu) */
   playtime: number;
   ageRating: string | null;
@@ -116,6 +125,10 @@ export function combineDetails(a: GameDetails, b: GameDetails | null): GameDetai
     modes: uniq([...a.modes, ...b.modes]),
     stores: a.stores.length ? a.stores : b.stores,
     freeToPlay: a.freeToPlay || b.freeToPlay,
+    controller: a.controller ?? b.controller,
+    pcRequirements: a.pcRequirements ?? b.pcRequirements,
+    descriptionFr: false,
+    descriptionEn: null,
     playtime: a.playtime || b.playtime,
     ageRating: a.ageRating ?? b.ageRating,
     // la description la plus courte est en général un vrai résumé (IGDB), la plus longue un pavé (RAWG)
