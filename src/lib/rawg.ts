@@ -144,7 +144,23 @@ async function getJson<T>(path: string): Promise<T | null> {
 }
 
 /** Transforme les réponses RAWG (fiche, captures, vidéos) en fiche du site. */
-export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovie[]): GameDetails {
+type RawgStore = { store_id: number; url: string };
+
+/** Boutiques connues de RAWG (identifiant → nom affiché). */
+export const RAWG_STORES: Record<number, string> = {
+  1: "Steam",
+  2: "Xbox Store",
+  3: "PlayStation Store",
+  4: "App Store",
+  5: "GOG",
+  6: "Nintendo eShop",
+  7: "Xbox 360 Store",
+  8: "Google Play",
+  9: "itch.io",
+  11: "Epic Games Store",
+};
+
+export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovie[], stores: RawgStore[] = []): GameDetails {
   const images = shots.map((s) => s.image).filter((u) => u && u !== g.background_image);
   return {
     id: g.id,
@@ -162,6 +178,9 @@ export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovi
     developers: (g.developers ?? []).map((d) => d.name),
     publishers: (g.publishers ?? []).map((d) => d.name),
     modes: (g.tags ?? []).flatMap((t) => (RAWG_MODES[t.slug] ? [RAWG_MODES[t.slug]] : [])),
+    // seulement les boutiques que RAWG connaît, avec un vrai lien
+    stores: stores.flatMap((s) => (RAWG_STORES[s.store_id] && /^https?:\/\//.test(s.url) ? [{ name: RAWG_STORES[s.store_id], url: s.url }] : [])),
+    freeToPlay: (g.tags ?? []).some((t) => t.slug === "free-to-play"),
     playtime: g.playtime ?? 0,
     ageRating: g.esrb_rating ? (ESRB[g.esrb_rating.name] ?? g.esrb_rating.name) : null,
     description: cleanDescription(g.description_raw ?? g.description),
@@ -178,14 +197,15 @@ export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovi
 
 /** La fiche complète d'un jeu RAWG (null s'il n'existe pas). */
 export async function rawgDetails(id: number): Promise<GameDetails | null> {
-  const [game, shots, movies] = await Promise.all([
+  const [game, shots, movies, stores] = await Promise.all([
     getJson<RawgDetail>(`/games/${id}`),
     // captures et vidéos sont un plus : si elles échouent, on affiche quand même la fiche
     getJson<{ results: RawgShot[] }>(`/games/${id}/screenshots?page_size=12`).catch(() => null),
     getJson<{ results: RawgMovie[] }>(`/games/${id}/movies`).catch(() => null),
+    getJson<{ results: RawgStore[] }>(`/games/${id}/stores`).catch(() => null),
   ]);
   if (!game) return null;
-  return rawgToDetails(game, shots?.results ?? [], movies?.results ?? []);
+  return rawgToDetails(game, shots?.results ?? [], movies?.results ?? [], stores?.results ?? []);
 }
 
 /** Cherche sur RAWG le même jeu qu'un jeu IGDB (même titre et année proche). */

@@ -201,6 +201,8 @@ export function igdbToDetails(g: IgdbDetail): GameDetails {
     developers: companies.filter((c) => c.developer).map((c) => c.company.name),
     publishers: companies.filter((c) => c.publisher).map((c) => c.company.name),
     modes: (g.game_modes ?? []).map((m) => IGDB_MODES[m.name] ?? m.name),
+    stores: [],
+    freeToPlay: false,
     playtime: 0,
     ageRating: null,
     description: cleanDescription(summary),

@@ -5,8 +5,18 @@ import type { Offer, ShopLink } from "@/lib/shops";
 
 const euros = (n: number, currency: string) => n.toLocaleString("fr-FR", { style: "currency", currency });
 
-/** « Où l'acheter » : prix du moment chez les boutiques PC, et liens vers d'autres boutiques. */
-export function WhereToBuy({ name, links, withPrices }: { name: string; links: ShopLink[]; withPrices: boolean }) {
+type Props = {
+  name: string;
+  /** boutiques officielles qui vendent vraiment le jeu (liens directs) */
+  stores: { name: string; url: string }[];
+  /** liens de recherche vers d'autres boutiques (seulement quand elles vendent sûrement le jeu) */
+  links: ShopLink[];
+  withPrices: boolean;
+  free: boolean;
+};
+
+/** « Où l'acheter » : prix du moment, boutiques officielles du jeu, et autres boutiques probables. */
+export function WhereToBuy({ name, stores, links, withPrices, free }: Props) {
   const [offers, setOffers] = useState<Offer[] | null>(withPrices ? null : []);
 
   useEffect(() => {
@@ -22,10 +32,12 @@ export function WhereToBuy({ name, links, withPrices }: { name: string; links: S
   }, [name, withPrices]);
 
   const affiliate = links.some((l) => l.affiliate);
+  // rien de sûr à proposer : mieux vaut ne rien afficher qu'un lien vers une boutique qui ne vend pas le jeu
+  if (offers !== null && offers.length === 0 && stores.length === 0 && links.length === 0) return null;
 
   return (
     <div className="buy">
-      <h2>Où l&apos;acheter</h2>
+      <h2>{free ? "Où y jouer" : "Où l'acheter"}</h2>
       <div className="buy-box">
         {offers === null && (
           <div aria-busy="true">
@@ -56,14 +68,31 @@ export function WhereToBuy({ name, links, withPrices }: { name: string; links: S
           </ul>
         )}
         {offers && offers.length > 0 && <p className="muted tiny">Prix PC du moment, via IsThereAnyDeal.</p>}
-        <p className="muted tiny">Voir le prix sur :</p>
-        <div className="shop-links">
-          {links.map((l) => (
-            <a key={l.shop} href={l.url} target="_blank" rel="noopener noreferrer sponsored" className="button ghost">
-              {l.shop} ↗
-            </a>
-          ))}
-        </div>
+        {free && <p className="free">Ce jeu est gratuit.</p>}
+        {stores.length > 0 && (
+          <>
+            <p className="muted tiny">{free ? "À télécharger sur :" : "Vendu sur :"}</p>
+            <div className="store-links">
+              {stores.map((st) => (
+                <a key={st.url} href={st.url} target="_blank" rel="noopener noreferrer" className="chip">
+                  {st.name} ↗
+                </a>
+              ))}
+            </div>
+          </>
+        )}
+        {links.length > 0 && (
+          <>
+            <p className="muted tiny">Comparer le prix sur :</p>
+            <div className="shop-links">
+              {links.map((l) => (
+                <a key={l.shop} href={l.url} target="_blank" rel="noopener noreferrer sponsored" className="button ghost">
+                  {l.shop} ↗
+                </a>
+              ))}
+            </div>
+          </>
+        )}
         {affiliate && (
           <p className="muted tiny">Liens affiliés : si tu achètes par ces liens, le site touche une petite commission, sans surcoût pour toi.</p>
         )}

@@ -88,6 +88,8 @@ export function demoDetails(id: number): GameDetails {
     developers: ["Studio d'exemple"],
     publishers: ["Éditeur d'exemple"],
     modes: ["Solo"],
+    stores: [],
+    freeToPlay: false,
     playtime: 12,
     ageRating: null,
     description:

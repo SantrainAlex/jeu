@@ -792,6 +792,10 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .shop-links { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.4rem; }
 .shop-links .button { font-size: 0.85rem; padding: 0.5rem 0.6rem; }
 .tiny { font-size: 0.72rem; margin-top: 0.6rem; line-height: 1.4; }
+.buy-box > .tiny:first-child, .buy-box > .free:first-child { margin-top: 0; }
+.store-links { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+.store-links .chip { font-size: 0.8rem; }
+.free { color: var(--success); font-weight: 600; }
 
 @media (max-width: 960px) {
   .game-layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
