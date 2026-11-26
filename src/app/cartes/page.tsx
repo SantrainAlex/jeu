@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 import { RarityGlyph } from "@/components/RarityGlyph";
 import { useEffect, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
+import { PromoCodeForm } from "@/components/PromoCodeForm";
 import { useCardViewer } from "@/components/CardViewer";
 import { TradingCard } from "@/components/TradingCard";
 import {
@@ -334,6 +335,8 @@ export default function CardsPage() {
         signedOut={signedOutWithAccounts && cloud.status === "signedOut"}
         onClaim={claim}
       />
+
+      <PromoCodeForm />
 
       <section className="odds">
         <h2>Chances par pack</h2>
