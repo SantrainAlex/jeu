@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Lives, Stream } from "@/lib/twitch";
+import { Icon } from "./Icon";
 
 type State = { status: "loading" } | { status: "off" } | ({ status: "ok" } & Lives);
 
@@ -98,8 +99,8 @@ export function LiveStreams({ name, igdbId }: { name: string; igdbId: number | n
                   <span className="live-thumb">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={s.thumbnail} alt="" loading="lazy" />
-                    <span className="live-badge">LIVE</span>
-                    <span className="live-viewers mono">{viewers(s.viewers)} 👁</span>
+                    <span className="live-badge"><span className="live-badge-dot" aria-hidden="true" />LIVE</span>
+                    <span className="live-viewers mono"><Icon name="eye" size={14} /> {viewers(s.viewers)}</span>
                   </span>
                   <span className="live-info">
                     <strong>

@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
+import { Logo } from "@/components/Logo";
+import { RarityGlyph } from "@/components/RarityGlyph";
 import { useEffect, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
 import { useCardViewer } from "@/components/CardViewer";
@@ -145,7 +148,7 @@ export default function CardsPage() {
     const res = await runCardAction({ type: "claimQuest", id, period }, pool.cards);
     setClaiming(null);
     if ("error" in res) setQuestMsg(res.error);
-    else if (res.reward) setQuestMsg(`🎉 Récompense reçue : ${rewardLabel(res.reward)} !`);
+    else if (res.reward) setQuestMsg(`Récompense reçue : ${rewardLabel(res.reward)} !`);
   };
 
   const reveal = (indices: number[]) => {
@@ -155,7 +158,7 @@ export default function CardsPage() {
     // la carte la plus rare parmi celles qu'on vient de retourner décide de la couleur de l'éclair
     const newly = fresh.map((i) => pulled[i]);
     const best = newly.find((c) => c.vitrail) ?? [...newly].reverse().find((c) => !["commune", "rare"].includes(c.rarity));
-    if (best) setFlash({ color: best.vitrail ? "#f5c84b" : rarityInfo(best.rarity).color, key: Date.now() });
+    if (best) setFlash({ color: best.vitrail ? "var(--rar-vitrail)" : rarityInfo(best.rarity).color, key: Date.now() });
     setRevealed(new Set([...revealed, ...fresh]));
   };
 
@@ -193,7 +196,8 @@ export default function CardsPage() {
           <div className="booster-stage" aria-live="polite">
             <div className="booster tearing" aria-hidden="true">
               <span className="booster-top" />
-              <span className="booster-label">BOOSTER</span>
+              <span className="booster-label">Booster</span>
+              <span className="booster-logo"><Logo size={44} wordmark={false} /></span>
               <small>{PACK_SIZE} cartes</small>
             </div>
             <span className="sr-only">Ouverture du booster…</span>
@@ -233,7 +237,7 @@ export default function CardsPage() {
                       {multiButtons.length > 0 && <div className="booster-multi">{multiButtons}</div>}
                     </>
                   ) : (
-                    <Link href="/cartes/album" className="button big">Voir mon album →</Link>
+                    <Link href="/cartes/album" className="button big">Voir mon album <Icon name="arrow-right" size={18} /></Link>
                   )}
                   <PackSummary cards={pulled} packs={opened} />
                 </>
@@ -244,7 +248,8 @@ export default function CardsPage() {
           <div className="booster-closed">
             <div className={packs.total > 0 && pool ? "booster ready" : "booster"} aria-hidden="true">
               <span className="booster-top" />
-              <span className="booster-label">BOOSTER</span>
+              <span className="booster-label">Booster</span>
+              <span className="booster-logo"><Logo size={44} wordmark={false} /></span>
               <small>{PACK_SIZE} cartes</small>
             </div>
             <div>
@@ -273,14 +278,14 @@ export default function CardsPage() {
 
         <ul className="booster-rules">
           <li>
-            ⏱️ 1 booster toutes les {RECHARGE_MS / 60000} minutes, jusqu&apos;à {MAX_STOCK} en réserve (
+            <Icon name="clock" size={16} /> 1 booster toutes les {RECHARGE_MS / 60000} minutes, jusqu&apos;à {MAX_STOCK} en réserve (
             {packs.nextIn === null ? "réserve pleine" : `prochain dans ${countdown(packs.nextIn)}`})
           </li>
           <li>
-            ♻️ Tes doublons servent à l&apos;<Link href="/cartes/atelier">atelier</Link> : recycle-les en pièces, fabrique
+            <Icon name="recycle" size={16} /> Tes doublons servent à l&apos;<Link href="/cartes/atelier">atelier</Link> : recycle-les en pièces, fabrique
             les cartes qui te manquent ou passe-les en argent et en or
           </li>
-          <li>🎯 Termine les quêtes du jour, de la semaine et du mois (juste en dessous) pour gagner des boosters et des pièces en plus</li>
+          <li><Icon name="check" size={16} /> Termine les quêtes du jour, de la semaine et du mois (juste en dessous) pour gagner des boosters et des pièces en plus</li>
         </ul>
       </section>
 
@@ -310,7 +315,7 @@ export default function CardsPage() {
             {oddsTable().map((r) => (
               <tr key={r.id}>
                 <td>
-                  <span className="dot" style={{ background: r.color }} /> <strong>{r.label}</strong>
+                  <RarityGlyph rarity={r.id} /> <strong>{r.label}</strong>
                 </td>
                 <td className="num mono">{(r.chance * 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %</td>
                 <td className="num mono strong">{pct(r.pack)}</td>
@@ -411,7 +416,7 @@ function QuestPanel(props: {
       <ul className="quest-list" role="tabpanel" aria-label={`Quêtes ${info.of}`}>
         {quests.map((q) => (
           <li key={q.id} className={q.claimed ? "quest claimed" : q.done ? "quest done" : "quest"}>
-            <span className="quest-icon" aria-hidden="true">{q.icon}</span>
+            <span className="quest-icon" aria-hidden="true"><Icon name={q.icon} size={22} /></span>
             <div className="quest-body">
               <strong>{q.label}</strong>
               <div className="quest-bar" role="progressbar" aria-valuemin={0} aria-valuemax={q.goal} aria-valuenow={q.progress} aria-label={q.label}>
@@ -422,7 +427,7 @@ function QuestPanel(props: {
               </span>
             </div>
             {q.claimed ? (
-              <span className="quest-ok">✓ Récupérée</span>
+              <span className="quest-ok"><Icon name="check" size={16} strokeWidth={2.5} /> Récupérée</span>
             ) : (
               <button
                 type="button"

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RarityGlyph } from "@/components/RarityGlyph";
 import { useEffect, useMemo, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
 import { useCardViewer } from "@/components/CardViewer";
@@ -93,7 +94,7 @@ export default function AlbumPage() {
               onClick={() => setFilter(r.id)}
               style={{ "--rarity": r.color } as React.CSSProperties}
             >
-              <span className="dot" style={{ background: r.color }} />
+              <RarityGlyph rarity={r.id} />
               {r.label} {n.owned}
               {pool ? `/${n.total}` : ""}
             </button>

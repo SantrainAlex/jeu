@@ -1,7 +1,7 @@
 // Service worker léger : rend le site installable et affiche une page
 // « hors connexion » au lieu de l'erreur du navigateur quand il n'y a pas de réseau.
 // Rien d'autre n'est mis en cache : les données restent toujours fraîches.
-const CACHE = "jeu-v1";
+const CACHE = "jeu-v2";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {

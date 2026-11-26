@@ -1,4 +1,4 @@
-# Jeux — les nouveautés jeux vidéo par plateforme
+# Raidly — les nouveautés jeux vidéo par plateforme
 
 Étape 1 du projet : les pages par plateforme (Switch, PC, PS5, PS4, Xbox Series, Xbox One, Mobile)
 avec les sorties du jour, de la semaine et du mois.

@@ -2,6 +2,7 @@
 
 import { rateGame, removeRating, useStore } from "@/lib/store";
 import type { Game } from "@/lib/types";
+import { Icon } from "./Icon";
 
 export function RatingStars({ game }: { game: Game }) {
   const [{ ratings }, ready] = useStore();
@@ -34,7 +35,7 @@ export function RatingStars({ game }: { game: Game }) {
                 )
           }
         >
-          ★
+          <Icon name="star" size={20} filled={n <= current} />
         </button>
       ))}
     </div>

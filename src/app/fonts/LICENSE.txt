@@ -1,7 +1,7 @@
-Polices libres (SIL Open Font License 1.1), copiées depuis les paquets Fontsource :
-Chakra Petch (Cadson Demak), Inter (Rasmus Andersson), JetBrains Mono (JetBrains).
-
-Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) Inter-Italic[opsz,wght].ttf: Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
+Polices libres (SIL Open Font License 1.1), copiées depuis Google Fonts (sous-ensemble latin) :
+Bricolage Grotesque (Copyright 2022 The Bricolage Grotesque Project Authors, https://github.com/ateliertriay/bricolage),
+Schibsted Grotesk (Copyright 2023 The Schibsted Grotesk Project Authors, https://github.com/schibsted/schibsted-grotesk),
+Martian Mono (Copyright 2021 The Martian Mono Project Authors, https://github.com/evilmartians/mono).
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

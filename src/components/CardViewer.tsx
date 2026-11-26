@@ -6,6 +6,7 @@ import { TradingCard } from "@/components/TradingCard";
 import type { Card } from "@/lib/cards";
 import { gameHref } from "@/lib/details";
 import type { Finish } from "@/lib/data";
+import { Icon } from "./Icon";
 
 export type ViewedCard = {
   card: Card;
@@ -126,12 +127,12 @@ export function useCardViewer() {
           >
             <TradingCard card={shown.card} vitrail={shown.vitrail} count={shown.count} finish={shown.finish} />
           </div>
-          <p className="card-viewer-hint muted">↔ Glisse la carte pour la retourner</p>
+          <p className="card-viewer-hint muted">Glisse la carte pour la retourner</p>
           <Link href={gameHref(shown.card)} className="button">
             Voir la fiche du jeu
           </Link>
           <button type="button" className="lightbox-close" onClick={close} aria-label="Fermer">
-            ✕
+            <Icon name="close" size={20} />
           </button>
         </div>
       )}

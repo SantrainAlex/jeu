@@ -7,11 +7,11 @@ export type Rarity = "commune" | "rare" | "epique" | "legendaire" | "mythique";
 
 export const RARITIES: { id: Rarity; label: string; color: string; chance: number }[] = [
   // Chances par carte. Ton tableau faisait 100,04 % au total : la Commune est ajustée à 88,96 % pour faire 100 %.
-  { id: "commune", label: "Commune", color: "#9ca3af", chance: 0.8896 },
-  { id: "rare", label: "Rare", color: "#3b82f6", chance: 0.097 },
-  { id: "epique", label: "Épique", color: "#a855f7", chance: 0.01 },
-  { id: "legendaire", label: "Légendaire", color: "#eab308", chance: 0.0032 },
-  { id: "mythique", label: "Mythique", color: "#ec4899", chance: 0.0002 },
+  { id: "commune", label: "Commune", color: "var(--rar-commune)", chance: 0.8896 },
+  { id: "rare", label: "Rare", color: "var(--rar-rare)", chance: 0.097 },
+  { id: "epique", label: "Épique", color: "var(--rar-epique)", chance: 0.01 },
+  { id: "legendaire", label: "Légendaire", color: "var(--rar-legendaire)", chance: 0.0032 },
+  { id: "mythique", label: "Mythique", color: "var(--rar-mythique)", chance: 0.0002 },
 ];
 
 export const PACK_SIZE = 5;
