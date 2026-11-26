@@ -7,11 +7,12 @@ import {
   igdbDetails,
   igdbExactTitle,
   igdbFind,
+  igdbOnlyOn,
   igdbPlatformId,
   igdbReleases,
 } from "./igdb";
-import { mergeGames, rankByTitle } from "./merge";
-import { PERIODS, type Period, type Platform } from "./platforms";
+import { isSameGame, mergeGames, rankByTitle } from "./merge";
+import { getPlatform, PERIODS, type Period, type Platform } from "./platforms";
 import {
   hasRawg,
   rawgByGenres,
@@ -59,6 +60,25 @@ async function onPlatforms(source: "rawg" | "igdb", platforms: Platform[], run: 
   const ids = (await Promise.all(platforms.map((p) => idsIn(source, p)))).flat();
   if (platforms.length > 0 && ids.length === 0) return [];
   return run(ids);
+}
+
+/**
+ * Prépare le filtre « pas les jeux d'une autre console » d'une plateforme (voir `hideGamesOnlyOn`).
+ * À lancer avant d'interroger les sources, pour que les deux se fassent en même temps.
+ * Si IGDB ne répond pas à temps, on n'enlève rien.
+ */
+function startHiding(platform: Platform): Promise<(games: Game[]) => Game[]> {
+  const other = platform.hideGamesOnlyOn ? getPlatform(platform.hideGamesOnlyOn) : undefined;
+  if (!other || !hasIgdb()) return Promise.resolve((games) => games);
+  const list = (async () => {
+    const [otherIds, ownIds] = await Promise.all([idsIn("igdb", other), idsIn("igdb", platform)]);
+    return otherIds.length ? igdbOnlyOn(otherIds, ownIds) : [];
+  })();
+  return atMost(list, 3000).then((elsewhere) => (games) => {
+    if (!elsewhere?.length) return games;
+    // un jeu renvoyé par IGDB pour cette plateforme y est bien : on le garde toujours
+    return games.filter((g) => g.sources.includes("igdb") || !elsewhere.some((e) => isSameGame(g, e)));
+  });
 }
 
 /** Temps maximum d'attente d'une source, en millisecondes. */
@@ -115,10 +135,12 @@ export async function getNewGames(platform: Platform, period: Period): Promise<G
     const seed = platform.slug.length * 7 + (platform.rawgIds[0] ?? platform.igdbIds[0]);
     return { games: demoReleases(seed, count, from, to), demo: true, sources: [] };
   }
-  return fromBothSources(
+  const hide = startHiding(platform);
+  const result = await fromBothSources(
     hasRawg() ? () => onPlatforms("rawg", [platform], (ids) => rawgReleases(ids, from, to)) : null,
     hasIgdb() ? () => onPlatforms("igdb", [platform], (ids) => igdbReleases(ids, from, to)) : null,
   );
+  return { ...result, games: (await hide)(result.games) };
 }
 
 /**
@@ -139,12 +161,14 @@ export async function getCandidates(platforms: Platform[], genreSlugs: string[])
     };
   }
   const perPlatform = await Promise.allSettled(
-    platforms.map((p) =>
-      fromBothSources(
+    platforms.map(async (p) => {
+      const hide = startHiding(p);
+      const r = await fromBothSources(
         hasRawg() ? () => onPlatforms("rawg", [p], (ids) => rawgByGenres(ids, genreSlugs)) : null,
         hasIgdb() ? () => onPlatforms("igdb", [p], (ids) => igdbByGenres(ids, genreSlugs)) : null,
-      ).then((r) => ({ ...r, games: tagPlatform(r.games, p.slug) })),
-    ),
+      );
+      return { ...r, games: tagPlatform((await hide)(r.games), p.slug) };
+    }),
   );
   const ok = perPlatform.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
   if (ok.length === 0) throw new Error("Aucune source de jeux ne répond pour le moment.");
@@ -178,6 +202,7 @@ export async function getCatalog(
     if (games.length >= CATALOG_PAGE_SIZE) full = true;
     return games;
   };
+  const hide = startHiding(platform);
   // En page 1 d'une recherche, on demande aussi à chaque source le jeu qui porte exactement ce titre :
   // la recherche « floue » des sources peut le noyer ou l'oublier (ex. « Find the Needle »).
   const exact = opts.page === 1 && opts.query ? opts.query : null;
@@ -193,8 +218,8 @@ export async function getCatalog(
       ? () => onPlatforms("igdb", [platform], (ids) => withExact(igdbCatalog(ids, o), () => igdbExactTitle(ids, exact!)))
       : null,
   );
-  const games = opts.query ? rankByTitle(result.games, opts.query) : result.games;
-  return { ...result, games, hasMore: full };
+  const ranked = opts.query ? rankByTitle(result.games, opts.query) : result.games;
+  return { ...result, games: (await hide)(ranked), hasMore: full };
 }
 
 /** Attend une promesse au plus `ms` millisecondes ; au-delà (ou en cas d'erreur) renvoie null. */
