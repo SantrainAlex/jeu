@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PLATFORMS } from "@/lib/platforms";
 import { togglePlatform, useStore } from "@/lib/store";
 import { UsernameForm } from "@/components/UsernameForm";
+import { PromoCodeForm } from "@/components/PromoCodeForm";
 import { PlatformMark } from "@/components/PlatformMark";
 
 export default function ProfilePage() {
@@ -14,6 +15,7 @@ export default function ProfilePage() {
     <>
       <h1>Mon profil</h1>
       <UsernameForm />
+      <PromoCodeForm />
 
       <h2>Mes plateformes</h2>
       <p className="muted">

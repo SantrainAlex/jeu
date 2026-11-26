@@ -60,6 +60,8 @@ export type Collection = {
   /** pièces gagnées en recyclant des doublons, et pièces dépensées à l'atelier (solde = gagnées - dépensées) */
   coinsEarned: number;
   coinsSpent: number;
+  /** codes promo déjà utilisés sur ce compte (en majuscules, sans espaces ni accents) */
+  promoCodes?: string[];
 };
 
 export type Data = { profile: Profile; ratings: Record<string, Rating>; collection: Collection };

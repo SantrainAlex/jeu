@@ -12,6 +12,7 @@ import { EMPTY, EMPTY_COLLECTION, isEmpty, normalize, type Collection, type Data
 import { onUserChange, read, replaceAll, setCollection } from "./store";
 import { mergeData } from "./sync";
 import { toSummaries, type PerfReport, type PerfSummary } from "./perf";
+import type { Reward } from "./quests";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -188,6 +189,28 @@ export async function serverCardAction(action: CardAction): Promise<ServerCardRe
     }
     setCollection(body.collection);
     return body;
+  } catch {
+    return { error: "Impossible de joindre le serveur, vérifie ta connexion internet." };
+  }
+}
+
+/** Utilise un code promo (/api/code-promo) : c'est le serveur qui vérifie le code et donne la récompense. */
+export async function redeemPromoCode(code: string): Promise<{ reward: Reward } | { error: string }> {
+  const sb = supabase();
+  if (!sb) return { error: "Les comptes ne sont pas configurés." };
+  const { data } = await sb.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { error: "Connecte-toi pour utiliser un code promo." };
+  try {
+    const res = await fetch("/api/code-promo", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ code }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: body.error ?? "Code impossible à utiliser pour le moment." };
+    setCollection(body.collection);
+    return { reward: body.reward };
   } catch {
     return { error: "Impossible de joindre le serveur, vérifie ta connexion internet." };
   }

@@ -355,3 +355,22 @@ $$;
 -- seul le serveur du site (clé service_role) peut faire un échange
 revoke all on function public.apply_trade(uuid, uuid, int, jsonb, uuid, int, jsonb) from public, anon, authenticated;
 grant execute on function public.apply_trade(uuid, uuid, int, jsonb, uuid, int, jsonb) to service_role;
+
+-- 9. Les codes promo (facultatif : le code « Bienvenue » marche même sans cette table).
+--    Pour ajouter un code : Table Editor > promo_codes > Insert row (code, packs = boosters offerts, coins = pièces offertes).
+--    Majuscules, espaces et accents ne comptent pas (« Noël 2026 » = « NOEL2026 »). Chaque compte ne peut l'utiliser qu'une fois.
+--    active = false pour le désactiver, expires_at pour lui donner une date de fin.
+create table if not exists public.promo_codes (
+  code text primary key,
+  packs int not null default 0 check (packs >= 0 and packs <= 20),
+  coins int not null default 0 check (coins >= 0 and coins <= 10000),
+  active boolean not null default true,
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- personne ne peut lire la liste des codes depuis son navigateur : seul le serveur du site la consulte
+alter table public.promo_codes enable row level security;
+revoke all on public.promo_codes from anon, authenticated;
+
+insert into public.promo_codes (code, packs, coins) values ('BIENVENUE', 1, 100) on conflict (code) do nothing;
