@@ -13,7 +13,6 @@ type RawgGame = {
   background_image: string | null;
   rating: number;
   genres?: Genre[];
-  platforms?: { platform: { id: number } }[] | null;
 };
 
 export function hasRawg() {
@@ -98,7 +97,9 @@ export function rawgCatalog(platformIds: number[], opts: { query?: string; sort:
  * les jeux dont RAWG connaît les plateformes et qui ne sont sur aucune de celles demandées.
  */
 export async function rawgExactTitle(platformIds: number[], title: string): Promise<Game[]> {
-  const found = await fetchGames({ search: title, search_exact: "true", page_size: "10" });
+  const found = (await fetchGames({ search: title, search_exact: "true", page_size: "10" })) as (RawgGame & {
+    platforms?: { platform: { id: number } }[] | null;
+  })[];
   const wanted = normalizeTitle(title);
   return found
     .filter((g) => normalizeTitle(g.name) === wanted)
