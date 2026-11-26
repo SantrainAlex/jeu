@@ -601,6 +601,7 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 /* ---------- Atelier ---------- */
 
 .pack-summary { font-size: 0.9rem; }
+.booster-multi { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
 .sort-select { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: auto; font-size: 0.85rem; }
 .sort-select select {
   background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: 999px;

@@ -43,6 +43,9 @@ export default function CardsPage() {
   const [onlineLeft, setOnlineLeft] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // ouverture de plusieurs boosters : où on en est (ex. 3 sur 10) et combien ont été ouverts
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [opened, setOpened] = useState(1);
 
   useEffect(() => {
     fetch("/api/cartes")
@@ -72,16 +75,33 @@ export default function CardsPage() {
   const signedOutWithAccounts = cloudEnabled && cloud.status !== "signedIn";
   const canOpen = ready && Boolean(pool) && packs.total > 0 && !signedOutWithAccounts && !busy;
 
-  const open = async () => {
+  /** Ouvre `count` boosters à la suite : chacun est vérifié par le serveur et compte pour les quêtes. */
+  const open = async (count = 1) => {
     if (!pool || busy) return;
     setActionError(null);
     setBusy(true);
-    // avec les comptes, c'est le serveur qui vérifie la réserve et tire les cartes
-    const res = await runCardAction({ type: "booster" }, pool.cards);
+    const all: PulledCard[] = [];
+    let done = 0;
+    for (let n = 0; n < count; n++) {
+      if (count > 1) setProgress({ done: n, total: count });
+      // avec les comptes, c'est le serveur qui vérifie la réserve et tire les cartes
+      const res = await runCardAction({ type: "booster" }, pool.cards);
+      if ("error" in res) {
+        // on garde les boosters déjà ouverts ; on ne prévient que si rien n'a pu être ouvert
+        if (done === 0) setActionError(res.error);
+        break;
+      }
+      if ("pulled" in res && res.pulled) {
+        all.push(...res.pulled);
+        done++;
+      }
+      if ("vitrailsLeft" in res && typeof res.vitrailsLeft === "number") setOnlineLeft(res.vitrailsLeft);
+    }
     setBusy(false);
-    if ("error" in res) setActionError(res.error);
-    const cards = "pulled" in res ? res.pulled : undefined;
+    setProgress(null);
+    const cards = all.length ? all : undefined;
     if (cards) {
+      setOpened(done);
       setPulled(null);
       setTearing(true);
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -90,9 +110,17 @@ export default function CardsPage() {
         setPulled(cards);
         setRevealed(new Set());
       }, reduced ? 0 : 950);
-      if ("vitrailsLeft" in res && typeof res.vitrailsLeft === "number") setOnlineLeft(res.vitrailsLeft);
     }
   };
+
+  // choix « ouvrir plusieurs » : 5, 10, 15 si tu en as assez, sinon « tout ouvrir »
+  const multi = [5, 10, 15].filter((n) => n <= packs.total);
+  if (packs.total > 1 && packs.total < 15 && !multi.includes(packs.total)) multi.push(packs.total);
+  const multiButtons = multi.map((n) => (
+    <button key={n} type="button" className="button ghost" disabled={!canOpen} onClick={() => open(n)}>
+      {n === packs.total && n !== 5 && n !== 10 && n !== 15 ? `Tout ouvrir (${n})` : `Ouvrir ${n}`}
+    </button>
+  ));
 
   const claim = async (id: QuestId) => {
     if (!pool || claiming) return;
@@ -167,7 +195,7 @@ export default function CardsPage() {
                   hidden={!revealed.has(i)}
                   onReveal={() => reveal([i])}
                   onOpen={() => viewer.open({ card: c, vitrail: c.vitrail })}
-                  style={{ animationDelay: `${i * 90}ms` }}
+                  style={{ animationDelay: `${Math.min(i, 12) * 90}ms` }}
                 />
               ))}
             </div>
@@ -183,13 +211,16 @@ export default function CardsPage() {
               ) : (
                 <>
                   {packs.total > 0 ? (
-                    <button type="button" className="button big" disabled={!canOpen} onClick={open}>
-                      Ouvrir un autre booster ({packs.total})
-                    </button>
+                    <>
+                      <button type="button" className="button big" disabled={!canOpen} onClick={() => open()}>
+                        {progress ? `Ouverture ${progress.done + 1} sur ${progress.total}…` : `Ouvrir un autre booster (${packs.total})`}
+                      </button>
+                      {multiButtons.length > 0 && <div className="booster-multi">{multiButtons}</div>}
+                    </>
                   ) : (
                     <Link href="/cartes/album" className="button big">Voir mon album →</Link>
                   )}
-                  <PackSummary cards={pulled} />
+                  <PackSummary cards={pulled} packs={opened} />
                 </>
               )}
             </div>
@@ -205,9 +236,16 @@ export default function CardsPage() {
               <p className="booster-count">
                 {!ready ? "…" : packs.total > 0 ? `${packs.total} booster${packs.total > 1 ? "s" : ""} à ouvrir` : "Plus de booster pour l'instant"}
               </p>
-              <button type="button" className="button big" disabled={!canOpen} onClick={open}>
-                {busy ? "Ouverture…" : pool || error ? "Ouvrir un booster" : "Préparation des cartes…"}
+              <button type="button" className="button big" disabled={!canOpen} onClick={() => open()}>
+                {progress
+                  ? `Ouverture ${progress.done + 1} sur ${progress.total}…`
+                  : busy
+                    ? "Ouverture…"
+                    : pool || error
+                      ? "Ouvrir un booster"
+                      : "Préparation des cartes…"}
               </button>
+              {multiButtons.length > 0 && <div className="booster-multi">{multiButtons}</div>}
               {signedOutWithAccounts && cloud.status === "signedOut" && (
                 <p className="muted small">
                   <Link href="/connexion">Connecte-toi</Link> pour ouvrir tes boosters : ta collection est gardée sur ton compte.
@@ -284,11 +322,12 @@ export default function CardsPage() {
   );
 }
 
-function PackSummary({ cards }: { cards: PulledCard[] }) {
+function PackSummary({ cards, packs }: { cards: PulledCard[]; packs: number }) {
   const fresh = cards.filter((c) => c.isNew).length;
   const dups = cards.length - fresh;
   return (
     <span className="muted pack-summary">
+      {packs > 1 && `${packs} boosters · ${cards.length} cartes · `}
       {fresh} nouvelle{fresh > 1 ? "s" : ""} · {dups} doublon{dups > 1 ? "s" : ""}
       {dups > 0 && (
         <>
