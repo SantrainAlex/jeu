@@ -88,3 +88,12 @@ Fonctionnement :
   sans être connecté, on ne peut pas gagner de vitrail.
 - Le serveur d'e-mails gratuit de Supabase n'envoie que quelques e-mails par heure : suffisant entre amis,
   à remplacer par un vrai service d'e-mails (SMTP) avant d'ouvrir au public.
+
+## Classement des collectionneurs
+
+- `/profil` : choisis ton nom d'utilisateur (unique, 3 à 20 caractères, modifiable).
+- `/cartes/classement` : le top 100 et ta place. Seuls le nom et les points sont publics.
+- Barème (`src/lib/score.ts`, recalculé par la base dans `collection_score`) : chaque carte **différente** vaut
+  Commune 1, Rare 3, Épique 10, Légendaire 25, Mythique 100 ; les doublons ne comptent pas ; finition argent ×2, or ×3 ;
+  vitrail numéroté 150. Les points sont calculés par la base à chaque changement de collection (impossible de tricher).
+- Mise en place : relancer `supabase/schema.sql` dans Supabase (partie 6).

@@ -105,3 +105,120 @@ create trigger strip_collection before insert or update on public.user_data
   for each row execute function public.strip_collection();
 
 update public.user_data set data = data - 'collection' where data ? 'collection';
+
+-- 6. Le classement des collectionneurs.
+--    a) Le nom d'utilisateur de chaque joueur (unique, sans tenir compte des majuscules). Chacun choisit et modifie le sien.
+create table if not exists public.profiles (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  username text not null check (char_length(username) between 3 and 20 and username ~ '^[[:alnum:]_.-]+$'),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists profiles_username_unique on public.profiles (lower(username));
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "lire son profil" on public.profiles;
+create policy "lire son profil" on public.profiles
+  for select to authenticated using ((select auth.uid()) = user_id);
+
+drop policy if exists "creer son profil" on public.profiles;
+create policy "creer son profil" on public.profiles
+  for insert to authenticated with check ((select auth.uid()) = user_id);
+
+drop policy if exists "modifier son profil" on public.profiles;
+create policy "modifier son profil" on public.profiles
+  for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+--    b) Les points d'une collection (mêmes règles que src/lib/score.ts) :
+--       Commune 1, Rare 3, Épique 10, Légendaire 25, Mythique 100 par carte différente (les doublons ne comptent pas),
+--       x2 en finition argent, x3 en or, et 150 points par vitrail numéroté.
+create or replace function public.collection_score(c jsonb)
+returns int
+language sql
+immutable
+set search_path = public
+as $$
+  select (
+    coalesce((
+      select sum(
+        case e.value -> 'card' ->> 'rarity'
+          when 'commune' then 1 when 'rare' then 3 when 'epique' then 10
+          when 'legendaire' then 25 when 'mythique' then 100 else 0 end
+        * case e.value ->> 'finish' when 'or' then 3 when 'argent' then 2 else 1 end
+      )
+      from jsonb_each(case when jsonb_typeof(c -> 'cards') = 'object' then c -> 'cards' else '{}'::jsonb end) e
+      where coalesce((e.value ->> 'count')::numeric, 0) - coalesce((e.value ->> 'used')::numeric, 0) >= 1
+    ), 0)
+    + 150 * case when jsonb_typeof(c -> 'vitraux') = 'array' then jsonb_array_length(c -> 'vitraux') else 0 end
+  )::int
+$$;
+
+--    c) Les points sont recalculés par la base à chaque changement de collection : personne ne peut les choisir.
+alter table public.user_cards add column if not exists score int not null default 0;
+
+create or replace function public.set_card_score()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.score := public.collection_score(new.collection);
+  return new;
+end;
+$$;
+
+drop trigger if exists set_card_score on public.user_cards;
+create trigger set_card_score before insert or update on public.user_cards
+  for each row execute function public.set_card_score();
+
+-- calcul des points des collections déjà enregistrées
+update public.user_cards set score = public.collection_score(collection) where score <> public.collection_score(collection);
+
+create index if not exists user_cards_score on public.user_cards (score desc);
+
+--    d) Le classement public : seulement le nom et les points (jamais l'e-mail ni le détail des cartes).
+--       Seuls les joueurs qui ont choisi un nom et qui ont au moins 1 point apparaissent.
+create or replace function public.leaderboard(lim int default 100)
+returns table (rank bigint, username text, score int)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select rank() over (order by c.score desc), p.username, c.score
+  from public.user_cards c
+  join public.profiles p on p.user_id = c.user_id
+  where c.score > 0
+  order by c.score desc, lower(p.username)
+  limit least(greatest(coalesce(lim, 100), 1), 200)
+$$;
+
+revoke all on function public.leaderboard(int) from public;
+grant execute on function public.leaderboard(int) to anon, authenticated;
+
+--    e) Ta place à toi, même si tu n'es pas dans le haut du classement.
+create or replace function public.my_rank()
+returns table (rank bigint, username text, score int)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    case when p.username is null or coalesce(c.score, 0) = 0 then null else (
+      select count(*) + 1
+      from public.user_cards c2
+      join public.profiles p2 on p2.user_id = c2.user_id
+      where c2.score > coalesce(c.score, 0)
+    ) end,
+    p.username,
+    coalesce(c.score, 0)
+  from (select (select auth.uid()) as uid) me
+  left join public.user_cards c on c.user_id = me.uid
+  left join public.profiles p on p.user_id = me.uid
+  where me.uid is not null
+$$;
+
+revoke all on function public.my_rank() from public;
+grant execute on function public.my_rank() to authenticated;
