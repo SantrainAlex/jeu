@@ -14,7 +14,8 @@ import { gamePlatforms } from "@/lib/platforms";
 import { PlayerPerf } from "@/components/PlayerPerf";
 import { hasPrices, shopLinks } from "@/lib/shops";
 import { SITE_NAME } from "@/lib/site";
-import { Icon, platformIcon } from "@/components/Icon";
+import { Icon } from "@/components/Icon";
+import { PlatformMark } from "@/components/PlatformMark";
 import { ExternalLabel } from "@/components/ExternalLabel";
 
 // La même fiche sert au titre de l'onglet et à la page : on ne la demande qu'une fois.
@@ -233,7 +234,7 @@ function PlatformBadges({ names }: { names: string[] }) {
     <div className="platform-badges" aria-label="Disponible sur">
       {known.map((p) => (
         <Link key={p.slug} href={`/plateforme/${p.slug}`} className="platform-badge">
-          <Icon name={platformIcon(p.slug)} size={14} />
+          <PlatformMark slug={p.slug} size="sm" />
           {p.short}
         </Link>
       ))}

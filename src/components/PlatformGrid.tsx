@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { PLATFORMS, type Platform } from "@/lib/platforms";
 import { useStore } from "@/lib/store";
-import { Icon, platformIcon } from "./Icon";
+import { Icon } from "./Icon";
+import { PlatformMark } from "./PlatformMark";
 
 function Card({ p, badge }: { p: Platform; badge?: string }) {
   return (
     <Link href={`/plateforme/${p.slug}`} className={badge ? "platform-card mine" : "platform-card"}>
-      <span className="platform-icon">
-        <Icon name={platformIcon(p.slug)} size={22} />
-      </span>
+      <PlatformMark slug={p.slug} />
       <span className="platform-name">
         {p.name}
         {badge && <small className="badge">{badge}</small>}
