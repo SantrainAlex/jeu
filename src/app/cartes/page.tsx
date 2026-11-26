@@ -32,7 +32,8 @@ export default function CardsPage() {
   const [pool, setPool] = useState<{ cards: Card[]; demo: boolean } | null>(null);
   const [error, setError] = useState(false);
   const [pulled, setPulled] = useState<PulledCard[] | null>(null);
-  const [revealed, setRevealed] = useState<number>(0);
+  // cartes déjà retournées (on peut les retourner dans n'importe quel ordre)
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const viewer = useCardViewer();
   // « tearing » : le pack se déchire avant que les cartes n'apparaissent
   const [tearing, setTearing] = useState(false);
@@ -85,22 +86,24 @@ export default function CardsPage() {
       setTimeout(() => {
         setTearing(false);
         setPulled(cards);
-        setRevealed(0);
+        setRevealed(new Set());
       }, reduced ? 0 : 950);
       if ("vitrailsLeft" in res && typeof res.vitrailsLeft === "number") setOnlineLeft(res.vitrailsLeft);
     }
   };
 
-  const reveal = (count: number) => {
+  const reveal = (indices: number[]) => {
     if (!pulled) return;
+    const fresh = indices.filter((i) => !revealed.has(i));
+    if (fresh.length === 0) return;
     // la carte la plus rare parmi celles qu'on vient de retourner décide de la couleur de l'éclair
-    const newly = pulled.slice(revealed, count);
+    const newly = fresh.map((i) => pulled[i]);
     const best = newly.find((c) => c.vitrail) ?? [...newly].reverse().find((c) => !["commune", "rare"].includes(c.rarity));
     if (best) setFlash({ color: best.vitrail ? "#f5c84b" : rarityInfo(best.rarity).color, key: Date.now() });
-    setRevealed(count);
+    setRevealed(new Set([...revealed, ...fresh]));
   };
 
-  const allRevealed = pulled !== null && revealed >= PACK_SIZE;
+  const allRevealed = pulled !== null && revealed.size >= pulled.length;
 
   return (
     <>
@@ -147,9 +150,9 @@ export default function CardsPage() {
                   key={i}
                   card={c}
                   vitrail={c.vitrail}
-                  badge={i < revealed ? (c.isNew ? "new" : "dup") : undefined}
-                  hidden={i >= revealed}
-                  onReveal={() => i === revealed && reveal(revealed + 1)}
+                  badge={revealed.has(i) ? (c.isNew ? "new" : "dup") : undefined}
+                  hidden={!revealed.has(i)}
+                  onReveal={() => reveal([i])}
                   onOpen={() => viewer.open({ card: c, vitrail: c.vitrail })}
                   style={{ animationDelay: `${i * 90}ms` }}
                 />
@@ -159,8 +162,8 @@ export default function CardsPage() {
             <div className="booster-actions">
               {!allRevealed ? (
                 <>
-                  <span className="muted">Clique sur la carte suivante pour la retourner</span>
-                  <button type="button" className="button ghost" onClick={() => reveal(PACK_SIZE)}>
+                  <span className="muted">Clique sur une carte pour la retourner</span>
+                  <button type="button" className="button ghost" onClick={() => reveal(pulled.map((_, i) => i))}>
                     Tout retourner
                   </button>
                 </>
