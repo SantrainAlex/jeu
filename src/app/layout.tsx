@@ -1,15 +1,37 @@
 import type { Metadata, Viewport } from "next";
-import { Chakra_Petch, Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { CloudStarter } from "@/components/CloudStarter";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
 import { SITE_NAME, SITE_TITLE } from "@/lib/site";
 
-// Titres « gaming », texte lisible, et chiffres à chasse fixe (notes, pourcentages, numéros)
-const display = Chakra_Petch({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
-const body = Inter({ subsets: ["latin"], variable: "--font-body" });
-const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-mono" });
+// Titres « gaming », texte lisible, et chiffres à chasse fixe (notes, pourcentages, numéros).
+// Les polices sont rangées avec le site (dossier fonts/) : la mise en ligne ne dépend plus de Google Fonts,
+// qui faisait parfois échouer la construction sur Vercel.
+const display = localFont({
+  src: [
+    { path: "./fonts/chakra-petch-latin-500-normal.woff2", weight: "500" },
+    { path: "./fonts/chakra-petch-latin-600-normal.woff2", weight: "600" },
+    { path: "./fonts/chakra-petch-latin-700-normal.woff2", weight: "700" },
+  ],
+  variable: "--font-display",
+  display: "swap",
+});
+const body = localFont({
+  src: "./fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
+  variable: "--font-body",
+  display: "swap",
+});
+const mono = localFont({
+  src: [
+    { path: "./fonts/jetbrains-mono-latin-400-normal.woff2", weight: "400" },
+    { path: "./fonts/jetbrains-mono-latin-700-normal.woff2", weight: "700" },
+  ],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
