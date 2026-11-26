@@ -187,6 +187,39 @@ describe("getCatalog", () => {
   });
 });
 
+describe("recherche par titre exact", () => {
+  it("met le jeu au titre exact en premier, même si la recherche floue l'oublie", async () => {
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.includes("id.twitch.tv")) return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }));
+      if (url.includes("igdb.com")) {
+        const body = String(init?.body);
+        const found = body.includes('name ~ "Find the needle"')
+          ? [{ id: 77, slug: "find-the-needle", name: "Find The Needle", platforms: [6] }]
+          : [];
+        return new Response(JSON.stringify(found));
+      }
+      const results = url.includes("search_exact=true")
+        ? [
+            { id: 5, slug: "find-the-needle", name: "Find The Needle", released: null, background_image: null, rating: 0, platforms: [{ platform: { id: 4 } }] },
+            { id: 6, slug: "find-the-needle-ps", name: "Find the Needle", released: null, background_image: null, rating: 0, platforms: [{ platform: { id: 187 } }] },
+          ]
+        : [
+            { id: 3, slug: "space-needle-vr", name: "Space Needle VR", released: "2017-04-19", background_image: null, rating: 3 },
+            { id: 4, slug: "evil-ka-needle", name: "Evil Ka-Needle", released: "2021-07-12", background_image: null, rating: 3 },
+          ];
+      return new Response(JSON.stringify({ results }));
+    });
+    const { getCatalog } = await import("./games");
+    const result = await getCatalog(getPlatform("pc")!, { query: "Find the needle", sort: "populaires", page: 1 });
+
+    expect(result.games.map((g) => g.name)).toEqual(["Find The Needle", "Space Needle VR", "Evil Ka-Needle"]);
+    expect(result.games[0].sources).toEqual(["rawg", "igdb"]);
+    // pendant une recherche, plus de filtre de date (les jeux sans date connue restent visibles)
+    const rawgUrls = fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.includes("rawg.io"));
+    expect(rawgUrls.every((u) => !u.includes("dates="))).toBe(true);
+  });
+});
+
 describe("sources lentes", () => {
   it("n'attend pas IGDB plus de 1,5 s après la réponse de RAWG", async () => {
     vi.useFakeTimers();

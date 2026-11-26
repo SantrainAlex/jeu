@@ -21,17 +21,43 @@ export type Offer = {
   url: string;
 };
 
-/** Liens « voir le prix » vers les boutiques, avec le code d'affiliation quand il est configuré. */
-export function shopLinks(name: string, env: Record<string, string | undefined> = process.env): ShopLink[] {
-  const q = encodeURIComponent(name);
-  const ig = new URL(`https://www.instant-gaming.com/fr/rechercher/?q=${q}`);
-  if (env.INSTANT_GAMING_IGR) ig.searchParams.set("igr", env.INSTANT_GAMING_IGR);
-  const amazon = new URL(`https://www.amazon.fr/s?k=${q}&i=videogames`);
-  if (env.AMAZON_TAG) amazon.searchParams.set("tag", env.AMAZON_TAG);
-  return [
-    { shop: "Instant Gaming", url: ig.toString(), affiliate: Boolean(env.INSTANT_GAMING_IGR) },
-    { shop: "Amazon", url: amazon.toString(), affiliate: Boolean(env.AMAZON_TAG) },
-  ];
+/** Ce qu'il faut savoir d'un jeu pour choisir les boutiques à proposer. */
+export type BuyInfo = { name: string; platforms: string[]; stores: { name: string }[]; freeToPlay: boolean };
+
+/** Boutiques dont Instant Gaming revend des clés. */
+const KEY_STORES = ["Steam", "Epic Games Store", "GOG", "PlayStation Store", "Xbox Store", "Nintendo eShop"];
+const isConsole = (p: string) => /playstation|xbox|nintendo|switch|wii/i.test(p);
+const isKeyPlatform = (p: string) => isConsole(p) || /^pc$|windows/i.test(p);
+
+/**
+ * Liens « voir le prix » vers les boutiques, avec le code d'affiliation quand il est configuré.
+ * Instant Gaming et Amazon n'ont pas d'API publique pour savoir s'ils vendent un jeu : on ne propose
+ * leur lien que quand c'est probable, pour éviter les pages « aucun résultat » :
+ * - jamais pour un jeu gratuit (free-to-play) ;
+ * - Instant Gaming : le jeu est vendu sur une boutique dont il revend des clés (Steam, PlayStation Store…),
+ *   ou, si on ne connaît pas ses boutiques, il sort sur PC ou console ;
+ * - Amazon : le jeu sort sur console (Amazon vend surtout des jeux en boîte).
+ */
+export function shopLinks(game: BuyInfo, env: Record<string, string | undefined> = process.env): ShopLink[] {
+  if (game.freeToPlay) return [];
+  const q = encodeURIComponent(game.name);
+  const links: ShopLink[] = [];
+
+  const sellsKeys = game.stores.length
+    ? game.stores.some((s) => KEY_STORES.includes(s.name))
+    : game.platforms.some(isKeyPlatform);
+  if (sellsKeys) {
+    const ig = new URL(`https://www.instant-gaming.com/fr/rechercher/?q=${q}`);
+    if (env.INSTANT_GAMING_IGR) ig.searchParams.set("igr", env.INSTANT_GAMING_IGR);
+    links.push({ shop: "Instant Gaming", url: ig.toString(), affiliate: Boolean(env.INSTANT_GAMING_IGR) });
+  }
+
+  if (game.platforms.some(isConsole)) {
+    const amazon = new URL(`https://www.amazon.fr/s?k=${q}&i=videogames`);
+    if (env.AMAZON_TAG) amazon.searchParams.set("tag", env.AMAZON_TAG);
+    links.push({ shop: "Amazon", url: amazon.toString(), affiliate: Boolean(env.AMAZON_TAG) });
+  }
+  return links;
 }
 
 export function hasPrices() {

@@ -1,6 +1,6 @@
 import { cleanDescription, type GameDetails } from "./details";
 import { genre } from "./genres";
-import { isSameGame } from "./merge";
+import { isSameGame, normalizeTitle } from "./merge";
 import type { Game, Genre } from "./types";
 
 const API = "https://api.rawg.io/api";
@@ -19,15 +19,22 @@ export function hasRawg() {
   return Boolean(process.env.RAWG_API_KEY);
 }
 
-async function query(params: Record<string, string>): Promise<Game[]> {
+async function fetchGames(params: Record<string, string>): Promise<RawgGame[]> {
   const search = new URLSearchParams({ key: process.env.RAWG_API_KEY ?? "", page_size: "40", ...params });
   const res = await fetch(`${API}/games?${search}`, {
     // On garde la réponse en cache 1 heure pour ne pas épuiser le quota RAWG
     next: { revalidate: 3600 },
   });
   if (!res.ok) throw new Error(`RAWG a répondu ${res.status}`);
-  const data = (await res.json()) as { results: RawgGame[] };
-  return data.results.map((g) => ({
+  return ((await res.json()) as { results: RawgGame[] }).results;
+}
+
+async function query(params: Record<string, string>): Promise<Game[]> {
+  return (await fetchGames(params)).map(toGame);
+}
+
+function toGame(g: RawgGame): Game {
+  return {
     id: g.id,
     slug: g.slug,
     name: g.name,
@@ -36,7 +43,7 @@ async function query(params: Record<string, string>): Promise<Game[]> {
     rating: g.rating,
     genres: (g.genres ?? []).map((x) => genre(x.slug, x.name)),
     sources: ["rawg"],
-  }));
+  };
 }
 
 /** Identifiant RAWG d'une plateforme d'après son nom exact (null si RAWG ne la connaît pas). Mis en cache 1 jour. */
@@ -71,15 +78,33 @@ export function rawgCatalog(platformIds: number[], opts: { query?: string; sort:
     platforms: platformIds.join(","),
     page: String(opts.page),
     page_size: String(opts.pageSize),
-    dates: `1970-01-01,${today}`, // seulement les jeux déjà sortis
   };
   if (opts.query) {
+    // Pas de filtre de date pendant une recherche : beaucoup de petits jeux n'ont pas de date connue chez RAWG
+    // et disparaîtraient des résultats.
     params.search = opts.query;
     params.search_precise = "true";
   } else {
+    params.dates = `1970-01-01,${today}`; // seulement les jeux déjà sortis
     params.ordering = ordering;
   }
   return query(params);
+}
+
+/**
+ * Les jeux qui portent exactement ce titre, pour qu'une recherche par nom complet les trouve toujours.
+ * On ne filtre pas la plateforme chez RAWG (certaines fiches n'en ont pas) : on écarte seulement
+ * les jeux dont RAWG connaît les plateformes et qui ne sont sur aucune de celles demandées.
+ */
+export async function rawgExactTitle(platformIds: number[], title: string): Promise<Game[]> {
+  const found = (await fetchGames({ search: title, search_exact: "true", page_size: "10" })) as (RawgGame & {
+    platforms?: { platform: { id: number } }[] | null;
+  })[];
+  const wanted = normalizeTitle(title);
+  return found
+    .filter((g) => normalizeTitle(g.name) === wanted)
+    .filter((g) => !g.platforms?.length || g.platforms.some((p) => platformIds.includes(p.platform.id)))
+    .map(toGame);
 }
 
 /** Les jeux les plus populaires toutes plateformes confondues (pour les cartes à collectionner). */
@@ -144,7 +169,23 @@ async function getJson<T>(path: string): Promise<T | null> {
 }
 
 /** Transforme les réponses RAWG (fiche, captures, vidéos) en fiche du site. */
-export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovie[]): GameDetails {
+type RawgStore = { store_id: number; url: string };
+
+/** Boutiques connues de RAWG (identifiant → nom affiché). */
+export const RAWG_STORES: Record<number, string> = {
+  1: "Steam",
+  2: "Xbox Store",
+  3: "PlayStation Store",
+  4: "App Store",
+  5: "GOG",
+  6: "Nintendo eShop",
+  7: "Xbox 360 Store",
+  8: "Google Play",
+  9: "itch.io",
+  11: "Epic Games Store",
+};
+
+export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovie[], stores: RawgStore[] = []): GameDetails {
   const images = shots.map((s) => s.image).filter((u) => u && u !== g.background_image);
   return {
     id: g.id,
@@ -162,6 +203,9 @@ export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovi
     developers: (g.developers ?? []).map((d) => d.name),
     publishers: (g.publishers ?? []).map((d) => d.name),
     modes: (g.tags ?? []).flatMap((t) => (RAWG_MODES[t.slug] ? [RAWG_MODES[t.slug]] : [])),
+    // seulement les boutiques que RAWG connaît, avec un vrai lien
+    stores: stores.flatMap((s) => (RAWG_STORES[s.store_id] && /^https?:\/\//.test(s.url) ? [{ name: RAWG_STORES[s.store_id], url: s.url }] : [])),
+    freeToPlay: (g.tags ?? []).some((t) => t.slug === "free-to-play"),
     playtime: g.playtime ?? 0,
     ageRating: g.esrb_rating ? (ESRB[g.esrb_rating.name] ?? g.esrb_rating.name) : null,
     description: cleanDescription(g.description_raw ?? g.description),
@@ -178,14 +222,15 @@ export function rawgToDetails(g: RawgDetail, shots: RawgShot[], movies: RawgMovi
 
 /** La fiche complète d'un jeu RAWG (null s'il n'existe pas). */
 export async function rawgDetails(id: number): Promise<GameDetails | null> {
-  const [game, shots, movies] = await Promise.all([
+  const [game, shots, movies, stores] = await Promise.all([
     getJson<RawgDetail>(`/games/${id}`),
     // captures et vidéos sont un plus : si elles échouent, on affiche quand même la fiche
     getJson<{ results: RawgShot[] }>(`/games/${id}/screenshots?page_size=12`).catch(() => null),
     getJson<{ results: RawgMovie[] }>(`/games/${id}/movies`).catch(() => null),
+    getJson<{ results: RawgStore[] }>(`/games/${id}/stores`).catch(() => null),
   ]);
   if (!game) return null;
-  return rawgToDetails(game, shots?.results ?? [], movies?.results ?? []);
+  return rawgToDetails(game, shots?.results ?? [], movies?.results ?? [], stores?.results ?? []);
 }
 
 /** Cherche sur RAWG le même jeu qu'un jeu IGDB (même titre et année proche). */

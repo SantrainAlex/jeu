@@ -67,3 +67,23 @@ export function mergeGames(...lists: Game[][]): Game[] {
   }
   return result;
 }
+
+/**
+ * Range les résultats d'une recherche : d'abord le titre exact, puis les titres qui commencent par la recherche,
+ * puis ceux qui contiennent tous ses mots, puis le reste (l'ordre des sources est gardé à égalité).
+ */
+export function rankByTitle(games: Game[], search: string): Game[] {
+  const wanted = normalizeTitle(search);
+  const words = wanted.split(" ").filter(Boolean);
+  const score = (g: Game) => {
+    const name = normalizeTitle(g.name);
+    if (name === wanted) return 0;
+    if (name.startsWith(`${wanted} `)) return 1;
+    const own = new Set(name.split(" "));
+    return words.every((w) => own.has(w)) ? 2 : 3;
+  };
+  return games
+    .map((game, index) => ({ game, index, score: score(game) }))
+    .sort((a, b) => a.score - b.score || a.index - b.index)
+    .map((x) => x.game);
+}
