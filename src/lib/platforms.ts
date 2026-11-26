@@ -48,6 +48,19 @@ export const PLATFORMS: Platform[] = [
   { slug: "mobile", name: "Mobile (iOS / Android)", short: "Mobile", rawgIds: [3, 21], igdbIds: [39, 34], color: "#8e44ad" },
 ];
 
+/**
+ * Toutes les plateformes du site réunies en une seule, pour la recherche en haut du site.
+ * Ce n'est pas une vraie console : elle n'apparaît dans aucune liste.
+ */
+export const ALL_PLATFORMS: Platform = {
+  slug: "toutes",
+  name: "toutes les plateformes",
+  short: "Toutes",
+  rawgIds: [...new Set(PLATFORMS.flatMap((p) => p.rawgIds))],
+  igdbIds: [...new Set(PLATFORMS.flatMap((p) => p.igdbIds))],
+  color: "#7c5cff",
+};
+
 export function getPlatform(slug: string): Platform | undefined {
   return PLATFORMS.find((p) => p.slug === slug);
 }

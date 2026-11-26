@@ -13,7 +13,7 @@ import {
   igdbReleases,
 } from "./igdb";
 import { isSameGame, mergeGames, rankByTitle } from "./merge";
-import { getPlatform, PERIODS, type Period, type Platform } from "./platforms";
+import { ALL_PLATFORMS, getPlatform, PERIODS, type Period, type Platform } from "./platforms";
 import {
   hasRawg,
   rawgByGenres,
@@ -228,6 +228,14 @@ export async function getCatalog(
   const fresh = already.length ? result.games.filter((g) => !already.some((s) => isSameGame(g, s))) : result.games;
   const ranked = opts.query ? rankByTitle(fresh, opts.query) : fresh;
   return { ...result, games: (await hide)(ranked), hasMore: full };
+}
+
+/**
+ * Recherche d'un jeu sur toutes les plateformes du site (barre de recherche en haut).
+ * Même recherche que le catalogue d'une plateforme : titre exact en premier, RAWG + IGDB, pages sans doublons.
+ */
+export function searchGames(query: string, page: number) {
+  return getCatalog(ALL_PLATFORMS, { query, sort: "populaires", page });
 }
 
 /** Nombre de pages précédentes demandées en même temps aux sources (IGDB refuse plus de 4 requêtes par seconde). */

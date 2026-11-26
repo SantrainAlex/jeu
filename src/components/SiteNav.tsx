@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 import { AccountLink } from "./AccountLink";
+import { HeaderSearch, HeaderSearchFallback } from "./HeaderSearch";
 import { SITE_NAME } from "@/lib/site";
 
 type Item = { href: string; label: string; icon: React.ReactNode; match: (p: string) => boolean };
@@ -38,6 +40,9 @@ export function SiteNav() {
             </Link>
           ))}
         </nav>
+        <Suspense fallback={<HeaderSearchFallback />}>
+          <HeaderSearch />
+        </Suspense>
         <AccountLink />
       </header>
       <nav className="tab-bar" aria-label="Navigation">

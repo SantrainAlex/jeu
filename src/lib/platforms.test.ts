@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gamePlatforms, matchPlatform } from "./platforms";
+import { ALL_PLATFORMS, gamePlatforms, matchPlatform, PLATFORMS } from "./platforms";
 
 describe("plateformes d'un jeu", () => {
   it("reconnaît les noms RAWG et IGDB", () => {
@@ -15,5 +15,20 @@ describe("plateformes d'un jeu", () => {
     const { known, others } = gamePlatforms(["PlayStation 5", "PC", "iOS", "Android", "macOS", "Nintendo Switch"]);
     expect(known.map((p) => p.slug)).toEqual(["switch", "pc", "ps5", "mobile"]);
     expect(others).toEqual(["macOS"]);
+  });
+});
+
+describe("recherche sur toutes les plateformes", () => {
+  it("réunit les identifiants de toutes les consoles du site, sans doublon", () => {
+    for (const p of PLATFORMS) {
+      for (const id of p.rawgIds) expect(ALL_PLATFORMS.rawgIds).toContain(id);
+      for (const id of p.igdbIds) expect(ALL_PLATFORMS.igdbIds).toContain(id);
+    }
+    expect(new Set(ALL_PLATFORMS.igdbIds).size).toBe(ALL_PLATFORMS.igdbIds.length);
+    expect(ALL_PLATFORMS.hideGamesOnlyOn).toBeUndefined();
+  });
+
+  it("n'apparaît pas dans la liste des consoles", () => {
+    expect(PLATFORMS).not.toContain(ALL_PLATFORMS);
   });
 });
