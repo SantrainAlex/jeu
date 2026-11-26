@@ -220,6 +220,7 @@ export default function WorkshopPage() {
                   onClick={() =>
                     act({ type: "tradeUp", rarity: r.id }, (res) => {
                       setGift(res.card ?? null);
+                      if (res.card) viewer.open({ card: res.card, title: "Échange réussi ! Tu gagnes :", reveal: true });
                       return `Échange réussi : tu obtiens ${res.card?.name} (${to.label}) !`;
                     })
                   }
@@ -288,7 +289,12 @@ export default function WorkshopPage() {
                     type="button"
                     className="button ghost"
                     disabled={busy || wallet < price}
-                    onClick={() => act({ type: "craft", id: c.id }, () => `${c.name} a rejoint ton album !`)}
+                    onClick={() =>
+                      act({ type: "craft", id: c.id }, () => {
+                        viewer.open({ card: c, title: "Carte fabriquée !", reveal: true });
+                        return `${c.name} a rejoint ton album !`;
+                      })
+                    }
                   >
                     Fabriquer · <span className="mono">{n(price)}</span>
                   </button>
