@@ -5,7 +5,8 @@
  * Quand tu es connecté, elles sont en plus synchronisées avec ton compte (voir cloud.ts).
  */
 import { useSyncExternalStore } from "react";
-import { VITRAIL_TOTAL, availablePacks, consumePack, openPack, type Card, type PulledCard } from "./cards";
+import { VITRAIL_TOTAL, availablePacks, openPack, type Card, type PulledCard } from "./cards";
+import { addPack } from "./cardRules";
 import { EMPTY, normalize, type Collection, type Data, type Profile, type Rating } from "./data";
 
 export type { Collection, Data, Profile, Rating } from "./data";
@@ -101,82 +102,33 @@ export function removeRating(id: number) {
   });
 }
 
-/** Stock de vitraux en ligne (quand tu es connecté) : combien il en reste et comment en réserver un. */
-export type VitrailStock = { left: number; claim: () => Promise<number | null> };
-
-let opening = false;
-
 /**
- * Ouvre un booster si tu en as un : le gratuit du jour d'abord, sinon un bonus gagné en notant des jeux.
+ * Ouvre un booster SANS compte (site lancé sans Supabase) : tout se passe dans ce navigateur.
+ * Avec les comptes, c'est le serveur qui ouvre les boosters (voir serverCardAction dans cloud.ts).
  * Renvoie les 5 cartes tirées, ou null s'il n'y a plus de booster.
  */
-export async function openBooster(pool: Card[], onlineStock?: VitrailStock): Promise<PulledCard[] | null> {
-  if (opening || pool.length === 0) return null;
+export function openLocalBooster(pool: Card[]): PulledCard[] | null {
+  if (pool.length === 0) return null;
   const before = read();
   const ratingsCount = Object.keys(before.ratings).length;
   if (availablePacks(before.collection, ratingsCount).total === 0) return null;
+  const { cards } = openPack(pool, {
+    vitrailsLeft: Math.max(0, VITRAIL_TOTAL - before.collection.vitrailsGiven),
+    nextVitrailNumber: before.collection.vitrailsGiven + 1,
+  });
+  const result = addPack(before.collection, cards, ratingsCount, Date.now(), { countLocalVitrail: true });
+  if (!result) return null;
+  write((d) => ({ ...d, collection: result.collection }));
+  return result.pulled;
+}
 
-  opening = true;
-  try {
-    const localLeft = Math.max(0, VITRAIL_TOTAL - before.collection.vitrailsGiven);
-    const { cards, vitrailUsed } = openPack(pool, {
-      vitrailsLeft: onlineStock ? onlineStock.left : localLeft,
-      nextVitrailNumber: before.collection.vitrailsGiven + 1,
-    });
-
-    let localVitrail = false;
-    if (vitrailUsed) {
-      const i = cards.findIndex((c) => c.vitrail);
-      if (onlineStock) {
-        // numéro réservé dans le stock partagé ; s'il n'en reste plus, la carte reste une carte normale
-        const n = await onlineStock.claim().catch(() => null);
-        if (n) cards[i] = { ...cards[i], vitrail: n };
-        else delete cards[i].vitrail;
-      } else {
-        localVitrail = true;
-      }
-    }
-
-    const now = new Date().toISOString();
-    write((d) => {
-      const c = d.collection;
-      const packs = consumePack(c, Object.keys(d.ratings).length) ?? c;
-      const owned = { ...c.cards };
-      const vitraux = [...c.vitraux];
-      cards.forEach((card, i) => {
-        const { vitrail, ...base } = card;
-        if (vitrail) {
-          vitraux.push({ card: base, number: vitrail, at: now });
-          cards[i] = { ...card, isNew: true };
-        } else {
-          const prev = owned[base.id];
-          // « Nouvelle ! » si tu ne l'avais pas avant ce booster (la 2e du même booster est un doublon)
-          cards[i] = { ...card, isNew: !prev };
-          owned[base.id] = prev ? { ...prev, count: prev.count + 1 } : { card: base, count: 1, firstAt: now };
-        }
-      });
-      return {
-        ...d,
-        collection: {
-          ...c,
-          cards: owned,
-          vitraux,
-          stock: packs.stock,
-          stockAt: packs.stockAt,
-          bonusClaimed: packs.bonusClaimed,
-          packsOpened: c.packsOpened + 1,
-          vitrailsGiven: c.vitrailsGiven + (localVitrail ? 1 : 0),
-        },
-      };
-    });
-    return cards;
-  } finally {
-    opening = false;
-  }
+/** Remplace la collection par celle renvoyée par le serveur (sans la renvoyer au compte). */
+export function setCollection(collection: Collection) {
+  save({ ...read(), collection });
 }
 
 /**
- * Applique une action de l'atelier (recycler, fabriquer, échanger, améliorer) à la collection.
+ * Applique une action de l'atelier (recycler, fabriquer, échanger, améliorer) à la collection, SANS compte.
  * `action` renvoie null si elle n'est pas possible ; dans ce cas rien ne change.
  */
 export function updateCollection<T extends Collection | { collection: Collection }>(
