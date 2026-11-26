@@ -929,3 +929,19 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* Nom d'utilisateur et classement */
+.box-title { margin: 0; font-size: 1.05rem; }
+.rank-me { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 1rem 1.25rem; max-width: 640px; }
+.rank-me .rank-big { font-size: 1.8rem; font-weight: 700; min-width: 3.5rem; }
+.rank-me .rank-text { flex: 1; min-width: 12rem; }
+.rank-table { width: 100%; max-width: 640px; border-collapse: collapse; margin-top: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.rank-table th, .rank-table td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--line); text-align: left; }
+.rank-table tr:last-child td { border-bottom: none; }
+.rank-table th { color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.rank-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.rank-table .pos { width: 3.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rank-table td.name { overflow-wrap: anywhere; }
+.rank-table tr.me td { background: var(--primary-soft); }
+.points-scale { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 0.5rem; padding: 0; list-style: none; }
+.points-scale li { display: flex; align-items: center; gap: 0.4rem; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 0.3rem 0.75rem; font-size: 0.88rem; }

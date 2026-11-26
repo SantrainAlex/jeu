@@ -199,3 +199,48 @@ export async function getVitrailsLeft(): Promise<number | null> {
   const { data } = await sb.from("vitrail_stock").select("total, given").eq("id", 1).single();
   return data ? Math.max(0, data.total - data.given) : null;
 }
+
+// ---------- Nom d'utilisateur et classement ----------
+
+/** Ton nom d'utilisateur (null si tu n'en as pas encore choisi). */
+export async function getUsername(): Promise<string | null> {
+  const sb = supabase();
+  if (!sb || !state.userId) return null;
+  const { data, error } = await sb.from("profiles").select("username").eq("user_id", state.userId).maybeSingle();
+  if (error) throw error;
+  return data?.username ?? null;
+}
+
+/** Enregistre ton nom d'utilisateur. Renvoie un message d'erreur, ou null si c'est bon. */
+export async function saveUsername(username: string): Promise<string | null> {
+  const sb = supabase();
+  if (!sb || !state.userId) return "Connecte-toi pour choisir un nom.";
+  const { error } = await sb
+    .from("profiles")
+    .upsert({ user_id: state.userId, username, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  if (!error) return null;
+  if (error.code === "23505") return "Ce nom est déjà pris, choisis-en un autre.";
+  if (error.code === "23514") return "Ce nom n'est pas autorisé : 3 à 20 lettres, chiffres, - _ ou .";
+  if (error.code === "42P01" || /profiles/.test(error.message)) return "Le classement n'est pas encore activé sur le site.";
+  return "Impossible d'enregistrer ton nom pour le moment, réessaie.";
+}
+
+export type RankRow = { rank: number | null; username: string | null; score: number };
+
+/** Le haut du classement (nom et points seulement), visible même sans être connecté. */
+export async function getLeaderboard(limit = 100): Promise<RankRow[]> {
+  const sb = supabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("leaderboard", { lim: limit });
+  if (error) throw error;
+  return (data as RankRow[]) ?? [];
+}
+
+/** Ta place, tes points et ton nom (null si tu n'es pas connecté). */
+export async function getMyRank(): Promise<RankRow | null> {
+  const sb = supabase();
+  if (!sb || !state.userId) return null;
+  const { data, error } = await sb.rpc("my_rank");
+  if (error) throw error;
+  return ((data as RankRow[]) ?? [])[0] ?? null;
+}

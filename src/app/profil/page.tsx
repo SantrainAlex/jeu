@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PLATFORMS } from "@/lib/platforms";
 import { togglePlatform, useStore } from "@/lib/store";
+import { UsernameForm } from "@/components/UsernameForm";
 
 export default function ProfilePage() {
   const [{ profile, ratings }, ready] = useStore();
@@ -11,6 +12,9 @@ export default function ProfilePage() {
   return (
     <>
       <h1>Mon profil</h1>
+      <UsernameForm />
+
+      <h2>Mes plateformes</h2>
       <p className="muted">
         Coche les plateformes que tu possèdes ou qui t&apos;intéressent : elles passeront en premier sur le site
         et serviront à choisir tes recommandations.
