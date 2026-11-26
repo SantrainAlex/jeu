@@ -15,6 +15,7 @@ import { PlayerPerf } from "@/components/PlayerPerf";
 import { hasPrices, shopLinks } from "@/lib/shops";
 import { SITE_NAME } from "@/lib/site";
 import { Icon, platformIcon } from "@/components/Icon";
+import { ExternalLabel } from "@/components/ExternalLabel";
 
 // La même fiche sert au titre de l'onglet et à la page : on ne la demande qu'une fois.
 const load = cache(async (key: string) => {
@@ -188,7 +189,7 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
             {g.website && (
               <Fact label="Site officiel">
                 <a href={g.website} target="_blank" rel="noreferrer" className="link">
-                  {hostname(g.website)} ↗
+                  <ExternalLabel>{hostname(g.website)}</ExternalLabel>
                 </a>
               </Fact>
             )}
@@ -198,7 +199,7 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
                   <span key={l.url}>
                     {i > 0 && " · "}
                     <a href={l.url} target="_blank" rel="noreferrer" className="link">
-                      {SOURCE_NAME[l.source]} ↗
+                      <ExternalLabel>{SOURCE_NAME[l.source]}</ExternalLabel>
                     </a>
                   </span>
                 ))}
@@ -278,7 +279,7 @@ function Performance({ game: g }: { game: GameDetails }) {
       <div className="perf-links">
         {links.map((l) => (
           <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer" className="perf-link">
-            <strong>{l.label} ↗</strong>
+            <strong className="ext-title"><ExternalLabel>{l.label}</ExternalLabel></strong>
             <span className="muted">{l.hint}</span>
           </a>
         ))}

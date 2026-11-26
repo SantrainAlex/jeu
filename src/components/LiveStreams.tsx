@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Lives, Stream } from "@/lib/twitch";
 import { Icon } from "./Icon";
+import { ExternalLabel } from "./ExternalLabel";
 
 type State = { status: "loading" } | { status: "off" } | ({ status: "ok" } & Lives);
 
@@ -80,7 +81,7 @@ export function LiveStreams({ name, igdbId }: { name: string; igdbId: number | n
                 </span>
                 <span className="live-player-actions">
                   <a href={`https://www.twitch.tv/${playing.channel}`} target="_blank" rel="noreferrer" className="link">
-                    Ouvrir sur Twitch ↗
+                    <ExternalLabel>Ouvrir sur Twitch</ExternalLabel>
                   </a>
                   <button type="button" className="chip" onClick={() => setPlaying(null)}>Fermer</button>
                 </span>
