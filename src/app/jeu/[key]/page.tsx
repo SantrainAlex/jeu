@@ -6,8 +6,10 @@ import { RatingStars } from "@/components/RatingStars";
 import { ReadMore } from "@/components/ReadMore";
 import { ScreenshotGallery } from "@/components/ScreenshotGallery";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { WhereToBuy } from "@/components/WhereToBuy";
 import { toGame, type GameDetails } from "@/lib/details";
 import { getGameDetails } from "@/lib/games";
+import { hasPrices, shopLinks } from "@/lib/shops";
 
 // La même fiche sert au titre de l'onglet et à la page : on ne la demande qu'une fois.
 const load = cache(async (key: string) => {
@@ -157,6 +159,7 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
               </Fact>
             )}
           </dl>
+          {!demo && !upcoming && <WhereToBuy name={g.name} links={shopLinks(g.name)} withPrices={hasPrices()} />}
         </aside>
       </div>
     </article>

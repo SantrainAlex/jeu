@@ -659,7 +659,7 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .game-main section { margin-top: 2rem; }
 .game-main h2, .game-aside h2 { margin: 0 0 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
 .count { font-size: 0.75rem; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 0.05rem 0.5rem; font-weight: 400; }
-.game-aside { position: sticky; top: calc(var(--header-h) + 1rem); margin-top: 2rem; }
+.game-aside { margin-top: 2rem; }
 
 .game-facts { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.4rem 1.1rem; }
 .game-facts > div { padding: 0.75rem 0; border-bottom: 1px solid var(--line); }
@@ -773,6 +773,25 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 }
 .live-player-bar strong { color: var(--text); }
 .live-player-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+/* Où l'acheter */
+.buy { margin-top: 1.5rem; }
+.buy-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.9rem 1.1rem 1rem; }
+.offers { list-style: none; display: grid; gap: 0.35rem; margin-bottom: 0.4rem; }
+.offer {
+  display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem;
+  border-radius: 10px; background: var(--surface-2); border: 1px solid transparent;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+.offer:hover { border-color: var(--primary-line); background: var(--surface-3); }
+.offer-shop { display: flex; align-items: center; gap: 0.45rem; font-weight: 600; font-size: 0.9rem; min-width: 0; flex-wrap: wrap; }
+.best { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 40%, transparent); border-radius: 999px; padding: 0 0.4rem; font-weight: 600; }
+.offer-price { display: flex; align-items: baseline; gap: 0.45rem; white-space: nowrap; font-size: 0.8rem; }
+.offer-price strong { font-size: 1rem; }
+.cut { color: var(--success); font-weight: 700; }
+.shop-links { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.4rem; }
+.shop-links .button { font-size: 0.85rem; padding: 0.5rem 0.6rem; }
+.tiny { font-size: 0.72rem; margin-top: 0.6rem; line-height: 1.4; }
 
 @media (max-width: 960px) {
   .game-layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
