@@ -87,3 +87,23 @@ export function rankByTitle(games: Game[], search: string): Game[] {
     .sort((a, b) => a.score - b.score || a.index - b.index)
     .map((x) => x.game);
 }
+
+/**
+ * Classe les suggestions de la barre de recherche pendant qu'on tape (« ins » → « Inside ») :
+ * d'abord le titre exact, puis les titres qui commencent par le texte tapé,
+ * puis ceux dont un mot commence par ce texte, puis le reste (dans l'ordre des sources).
+ */
+export function rankSuggestions(games: Game[], typed: string): Game[] {
+  const wanted = normalizeTitle(typed);
+  const score = (g: Game) => {
+    const name = normalizeTitle(g.name);
+    if (name === wanted) return 0;
+    if (name.startsWith(wanted)) return 1;
+    if (name.split(" ").some((w) => w.startsWith(wanted)) || name.includes(` ${wanted}`)) return 2;
+    return 3;
+  };
+  return games
+    .map((game, index) => ({ game, index, score: score(game) }))
+    .sort((a, b) => a.score - b.score || a.index - b.index)
+    .map((x) => x.game);
+}
