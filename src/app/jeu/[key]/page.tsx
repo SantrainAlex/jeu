@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { BackButton } from "@/components/BackButton";
@@ -9,6 +10,7 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { WhereToBuy } from "@/components/WhereToBuy";
 import { toGame, type GameDetails } from "@/lib/details";
 import { getGameDetails } from "@/lib/games";
+import { gamePlatforms } from "@/lib/platforms";
 import { hasPrices, shopLinks } from "@/lib/shops";
 import { SITE_NAME } from "@/lib/site";
 
@@ -79,6 +81,7 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
               {g.released ? `${upcoming ? "Sortie prévue le" : "Sorti le"} ${longDate(g.released)}` : "Date de sortie inconnue"}
               {g.developers.length > 0 && ` · ${g.developers[0]}`}
             </p>
+            <PlatformBadges names={g.platforms} />
             <Scores game={g} />
             <RatingStars game={toGame(g)} />
           </div>
@@ -157,6 +160,7 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
               <p className="muted small">D&apos;après la page Steam du jeu.</p>
             </section>
           )}
+          {!demo && <Performance game={g} />}
         </div>
 
         <aside className="game-aside">
@@ -216,6 +220,61 @@ function controllerText(g: GameDetails): string | null {
   if (pc) return pc === "entièrement" ? "Oui, entièrement" : "En partie";
   if (console) return g.platforms.some((p) => /^pc$|windows/i.test(p)) ? "Oui sur console (pas indiqué sur PC)" : "Oui";
   return null;
+}
+
+/** « Disponible sur » : les plateformes du jeu, bien visibles, avec un lien vers leurs nouveautés. */
+function PlatformBadges({ names }: { names: string[] }) {
+  const { known, others } = gamePlatforms(names);
+  if (known.length === 0 && others.length === 0) return null;
+  return (
+    <div className="platform-badges" aria-label="Disponible sur">
+      {known.map((p) => (
+        <Link key={p.slug} href={`/plateforme/${p.slug}`} className="platform-badge" style={{ "--accent": p.color } as React.CSSProperties}>
+          {p.short}
+        </Link>
+      ))}
+      {others.slice(0, 4).map((o) => (
+        <span key={o} className="platform-badge other">{o}</span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * « Sur quelle plateforme y jouer ? » : aucune source automatique ne donne la résolution et les FPS par console,
+ * alors on renvoie vers les analyses qui les mesurent (Digital Foundry, backwards-compatible.com, comparatifs).
+ */
+function Performance({ game: g }: { game: GameDetails }) {
+  const { known } = gamePlatforms(g.platforms);
+  if (known.length < 2) return null;
+  const q = (text: string) => encodeURIComponent(text);
+  const consoles = known.filter((p) => p.slug !== "pc" && p.slug !== "mobile").map((p) => p.short);
+  const versus = known.filter((p) => p.slug !== "mobile").map((p) => p.short).slice(0, 3).join(" vs ");
+  const links = [
+    { label: "Analyse Digital Foundry", hint: "résolution et FPS mesurés", url: `https://www.youtube.com/results?search_query=${q(`Digital Foundry ${g.name}`)}` },
+    { label: `Comparatif ${versus}`, hint: "les versions côte à côte", url: `https://www.youtube.com/results?search_query=${q(`${g.name} ${versus} comparison`)}` },
+    ...(consoles.length
+      ? [{ label: "backwards-compatible.com", hint: "résolution et FPS par console", url: `https://www.google.com/search?q=${q(`site:backwards-compatible.com ${g.name}`)}` }]
+      : []),
+  ];
+  return (
+    <section>
+      <h2>Sur quelle plateforme y jouer ?</h2>
+      <p className="muted perf-intro">
+        Le jeu sort sur {known.map((p) => p.short).join(", ")}. La résolution et les FPS changent d&apos;une console à l&apos;autre :
+        ces analyses les mesurent.
+        {g.pcRequirements && " Sur PC, ça dépend de ta machine (voir la configuration ci-dessus)."}
+      </p>
+      <div className="perf-links">
+        {links.map((l) => (
+          <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer" className="perf-link">
+            <strong>{l.label} ↗</strong>
+            <span className="muted">{l.hint}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {

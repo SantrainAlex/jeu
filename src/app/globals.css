@@ -761,6 +761,27 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .card-viewer .tcard-back-logo { width: 96px; height: 96px; font-size: 2.8rem; border-radius: 22px; }
 @keyframes card-zoom { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
 
+/* Plateformes du jeu et performances */
+.platform-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; }
+.platform-badge {
+  display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.7rem; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 600; background: rgba(10, 11, 15, 0.6); border: 1px solid var(--line-strong);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: border-color 0.2s var(--ease);
+}
+.platform-badge::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); }
+.platform-badge:hover { border-color: var(--accent); }
+.platform-badge.other { font-weight: 500; color: var(--text-dim); }
+.platform-badge.other::before { background: var(--muted); }
+.perf-intro { max-width: 70ch; margin-bottom: 0.8rem; }
+.perf-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.6rem; }
+.perf-link {
+  display: grid; gap: 0.15rem; padding: 0.8rem 1rem; border-radius: 12px; background: var(--surface); border: 1px solid var(--line);
+  transition: border-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.perf-link:hover { border-color: var(--primary-line); transform: translateY(-2px); }
+.perf-link strong { font-size: 0.9rem; }
+.perf-link .muted { font-size: 0.78rem; }
+
 /* Configuration PC */
 .specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; }
 .spec-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.9rem 1.1rem; }
