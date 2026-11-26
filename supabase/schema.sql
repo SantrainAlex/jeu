@@ -222,3 +222,60 @@ $$;
 
 revoke all on function public.my_rank() from public;
 grant execute on function public.my_rank() to authenticated;
+
+-- 7. Les avis des joueurs sur la résolution et les FPS d'un jeu, par plateforme.
+--    Un avis par joueur, par jeu et par plateforme. Chacun ne voit et ne modifie que les siens ;
+--    tout le monde voit seulement le résumé (nombre d'avis, résolution et FPS les plus cités), jamais qui a voté.
+create table if not exists public.perf_reports (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  game_id int not null,
+  platform text not null check (platform in ('switch', 'switch-2', 'pc', 'ps5', 'ps4', 'xbox', 'xbox-one', 'mobile')),
+  resolution text not null check (resolution in ('720p', '900p', '1080p', '1440p', '4k')),
+  fps int not null check (fps in (30, 40, 60, 120)),
+  stable boolean not null,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, game_id, platform)
+);
+
+create index if not exists perf_reports_game on public.perf_reports (game_id);
+
+alter table public.perf_reports enable row level security;
+
+drop policy if exists "lire ses avis perf" on public.perf_reports;
+create policy "lire ses avis perf" on public.perf_reports
+  for select to authenticated using ((select auth.uid()) = user_id);
+
+drop policy if exists "creer ses avis perf" on public.perf_reports;
+create policy "creer ses avis perf" on public.perf_reports
+  for insert to authenticated with check ((select auth.uid()) = user_id);
+
+drop policy if exists "modifier ses avis perf" on public.perf_reports;
+create policy "modifier ses avis perf" on public.perf_reports
+  for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+drop policy if exists "effacer ses avis perf" on public.perf_reports;
+create policy "effacer ses avis perf" on public.perf_reports
+  for delete to authenticated using ((select auth.uid()) = user_id);
+
+--    Le résumé public d'un jeu : pour chaque plateforme, le nombre d'avis, la résolution et les FPS les plus cités,
+--    et la part des joueurs qui trouvent le jeu fluide.
+create or replace function public.perf_summary(gid int)
+returns table (platform text, votes int, resolution text, fps int, stable_pct int)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    r.platform,
+    count(*)::int,
+    mode() within group (order by r.resolution),
+    mode() within group (order by r.fps),
+    round(100.0 * count(*) filter (where r.stable) / count(*))::int
+  from public.perf_reports r
+  where r.game_id = gid
+  group by r.platform
+$$;
+
+revoke all on function public.perf_summary(int) from public;
+grant execute on function public.perf_summary(int) to anon, authenticated;
