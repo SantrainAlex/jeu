@@ -159,7 +159,7 @@ export default async function GamePage({ params }: { params: Promise<{ key: stri
               </Fact>
             )}
           </dl>
-          {!demo && !upcoming && <WhereToBuy name={g.name} links={shopLinks(g.name)} withPrices={hasPrices()} />}
+          {!demo && !upcoming && <WhereToBuy name={g.name} stores={g.freeToPlay ? [] : g.stores} links={shopLinks(g)} withPrices={hasPrices() && !g.freeToPlay} free={g.freeToPlay} />}
         </aside>
       </div>
     </article>

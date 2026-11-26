@@ -31,6 +31,10 @@ export type GameDetails = {
   developers: string[];
   publishers: string[];
   modes: string[];
+  /** boutiques officielles qui vendent vraiment le jeu (liste RAWG), avec le lien direct */
+  stores: { name: string; url: string }[];
+  /** jeu gratuit (free-to-play) : rien à acheter */
+  freeToPlay: boolean;
   /** temps de jeu moyen en heures (0 si inconnu) */
   playtime: number;
   ageRating: string | null;
@@ -110,6 +114,8 @@ export function combineDetails(a: GameDetails, b: GameDetails | null): GameDetai
     developers: uniq([...a.developers, ...b.developers]),
     publishers: uniq([...a.publishers, ...b.publishers]),
     modes: uniq([...a.modes, ...b.modes]),
+    stores: a.stores.length ? a.stores : b.stores,
+    freeToPlay: a.freeToPlay || b.freeToPlay,
     playtime: a.playtime || b.playtime,
     ageRating: a.ageRating ?? b.ageRating,
     // la description la plus courte est en général un vrai résumé (IGDB), la plus longue un pavé (RAWG)

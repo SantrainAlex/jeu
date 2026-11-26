@@ -50,6 +50,7 @@ const rawg = rawgToDetails(
   },
   [{ image: "https://media.rawg.io/media/games/bg.jpg" }, { image: "https://media.rawg.io/media/screenshots/a.jpg" }],
   [{ name: "Trailer", preview: "https://media.rawg.io/media/movies/p.jpg", data: { "480": "https://steamcdn/480.mp4", max: "https://steamcdn/max.mp4" } }],
+  [{ store_id: 1, url: "https://store.steampowered.com/app/271590/" }, { store_id: 999, url: "https://inconnu" }, { store_id: 3, url: "" }],
 );
 
 describe("rawgToDetails", () => {
@@ -58,6 +59,9 @@ describe("rawgToDetails", () => {
     expect(rawg.modes).toEqual(["Solo"]);
     expect(rawg.description).toBe("Rockstar Games went bigger.");
     expect(rawg.platforms).toEqual(["PC", "PlayStation 5"]);
+    // seulement les boutiques connues avec un vrai lien
+    expect(rawg.stores).toEqual([{ name: "Steam", url: "https://store.steampowered.com/app/271590/" }]);
+    expect(rawg.freeToPlay).toBe(false);
     expect(rawg.videos).toEqual([{ kind: "mp4", src: "https://steamcdn/480.mp4", poster: "https://media.rawg.io/media/movies/p.jpg", name: "Trailer" }]);
   });
   it("n'affiche pas deux fois l'image de fond et réduit les captures", () => {
