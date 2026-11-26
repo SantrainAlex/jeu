@@ -23,7 +23,7 @@ export async function runCardAction(action: CardAction, pool: Card[]): Promise<S
       return pulled ? { collection: read().collection, pulled } : { error: "Plus de booster pour l'instant." };
     }
     if (action.type === "claimQuest") {
-      const reward = claimLocalQuest(action.id);
+      const reward = claimLocalQuest(action);
       return reward ? { collection: read().collection, reward } : { error: "Cette quête n'est pas encore finie." };
     }
     return updateCollection((c) => applyWorkshop(c, action, pool)) ?? { error: "Action impossible." };

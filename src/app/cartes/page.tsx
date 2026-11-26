@@ -19,7 +19,18 @@ import {
 } from "@/lib/cards";
 import { runCardAction } from "@/lib/cardClient";
 import { cloudEnabled, getVitrailsLeft, useCloud } from "@/lib/cloud";
-import { msUntilReset, questBoard, ratedToday, rewardLabel, withLegacyBonus, type QuestId, type QuestView } from "@/lib/quests";
+import {
+  PERIODS,
+  msUntilPeriodEnd,
+  periodInfo,
+  questBoard,
+  ratedCounts,
+  rewardLabel,
+  withLegacyBonus,
+  type Period,
+  type QuestId,
+  type QuestView,
+} from "@/lib/quests";
 import { useStore } from "@/lib/store";
 
 const pct = (x: number) =>
@@ -68,7 +79,11 @@ export default function CardsPage() {
 
   const ratingsCount = Object.keys(ratings).length;
   const packs = availablePacks(withLegacyBonus(collection, ratingsCount), now);
-  const quests = questBoard(collection, ratedToday(ratings, now), now);
+  const rated = ratedCounts(ratings, now);
+  const boards = Object.fromEntries(PERIODS.map((p) => [p.id, questBoard(collection, rated[p.id], now, p.id)])) as Record<
+    Period,
+    QuestView[]
+  >;
   const [claiming, setClaiming] = useState<QuestId | null>(null);
   const [questMsg, setQuestMsg] = useState<string | null>(null);
   const vitrailsLeft = cloudEnabled ? (onlineLeft ?? VITRAIL_TOTAL) : Math.max(0, VITRAIL_TOTAL - collection.vitrailsGiven);
@@ -122,12 +137,12 @@ export default function CardsPage() {
     </button>
   ));
 
-  const claim = async (id: QuestId) => {
+  const claim = async (period: Period, id: QuestId) => {
     if (!pool || claiming) return;
     setQuestMsg(null);
     setClaiming(id);
     // avec les comptes, c'est le serveur qui vérifie que la quête est finie et donne la récompense
-    const res = await runCardAction({ type: "claimQuest", id }, pool.cards);
+    const res = await runCardAction({ type: "claimQuest", id, period }, pool.cards);
     setClaiming(null);
     if ("error" in res) setQuestMsg(res.error);
     else if (res.reward) setQuestMsg(`🎉 Récompense reçue : ${rewardLabel(res.reward)} !`);
@@ -265,12 +280,12 @@ export default function CardsPage() {
             ♻️ Tes doublons servent à l&apos;<Link href="/cartes/atelier">atelier</Link> : recycle-les en pièces, fabrique
             les cartes qui te manquent ou passe-les en argent et en or
           </li>
-          <li>🎯 Termine les quêtes du jour (juste en dessous) pour gagner des boosters et des pièces en plus</li>
+          <li>🎯 Termine les quêtes du jour, de la semaine et du mois (juste en dessous) pour gagner des boosters et des pièces en plus</li>
         </ul>
       </section>
 
       <QuestPanel
-        quests={quests}
+        boards={boards}
         now={now}
         message={questMsg}
         claiming={claiming}
@@ -339,29 +354,61 @@ function PackSummary({ cards, packs }: { cards: PulledCard[]; packs: number }) {
   );
 }
 
-/** Les quêtes du jour : avancement, récompense, et bouton pour la récupérer. */
+/** « 5 h 03 », « 12 min », « 3 j 5 h ». */
+function untilLabel(ms: number) {
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  if (h >= 24) return `${Math.floor(h / 24)} j ${h % 24} h`;
+  return h > 0 ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`;
+}
+
+const RESET_TEXT: Record<Period, string> = {
+  day: "Les quêtes du jour changent tous les jours à minuit.",
+  week: "Les quêtes de la semaine changent chaque lundi à minuit.",
+  month: "Les quêtes du mois changent le 1er de chaque mois à minuit.",
+};
+
+/** Les quêtes du jour, de la semaine et du mois (onglets) : avancement, récompense, et bouton pour la récupérer. */
 function QuestPanel(props: {
-  quests: QuestView[];
+  boards: Record<Period, QuestView[]>;
   now: number;
   message: string | null;
   claiming: QuestId | null;
   disabled: boolean;
   signedOut: boolean;
-  onClaim: (id: QuestId) => void;
+  onClaim: (period: Period, id: QuestId) => void;
 }) {
-  const { quests, now, message, claiming, disabled, signedOut, onClaim } = props;
-  const left = msUntilReset(now);
-  const h = Math.floor(left / 3_600_000);
-  const m = Math.floor((left % 3_600_000) / 60_000);
+  const { boards, now, message, claiming, disabled, signedOut, onClaim } = props;
+  const [period, setPeriod] = useState<Period>("day");
+  const quests = boards[period];
+  const info = periodInfo(period);
+  const ready = (p: Period) => boards[p].filter((q) => q.done && !q.claimed).length;
   return (
     <section className="quests" aria-labelledby="quests-title">
       <div className="quests-head">
-        <h2 id="quests-title">Quêtes du jour</h2>
-        <span className="muted small mono">Nouvelles quêtes dans {h > 0 ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`}</span>
+        <h2 id="quests-title">Quêtes</h2>
+        <span className="muted small mono">Nouvelles quêtes dans {untilLabel(msUntilPeriodEnd(period, now))}</span>
       </div>
-      <p className="muted small">Chaque récompense se récupère une seule fois par jour. Les quêtes changent tous les jours à minuit.</p>
+      <div className="quest-tabs" role="tablist" aria-label="Période des quêtes">
+        {PERIODS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="tab"
+            aria-selected={p.id === period}
+            className={p.id === period ? "quest-tab active" : "quest-tab"}
+            onClick={() => setPeriod(p.id)}
+          >
+            {p.tab}
+            {ready(p.id) > 0 && <span className="quest-dot" aria-label={`${ready(p.id)} à récupérer`}>{ready(p.id)}</span>}
+          </button>
+        ))}
+      </div>
+      <p className="muted small">
+        {RESET_TEXT[period]} Chaque récompense se récupère une seule fois.
+      </p>
       {message && <p className="notice">{message}</p>}
-      <ul className="quest-list">
+      <ul className="quest-list" role="tabpanel" aria-label={`Quêtes ${info.of}`}>
         {quests.map((q) => (
           <li key={q.id} className={q.claimed ? "quest claimed" : q.done ? "quest done" : "quest"}>
             <span className="quest-icon" aria-hidden="true">{q.icon}</span>
@@ -381,7 +428,7 @@ function QuestPanel(props: {
                 type="button"
                 className={q.done ? "button" : "button ghost"}
                 disabled={!q.done || disabled || claiming !== null}
-                onClick={() => onClaim(q.id)}
+                onClick={() => onClaim(period, q.id)}
               >
                 {claiming === q.id ? "…" : "Récupérer"}
               </button>

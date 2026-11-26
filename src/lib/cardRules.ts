@@ -5,7 +5,7 @@
  */
 import { RARITIES, consumePack, type Card, type PulledCard, type Rarity } from "./cards";
 import type { Collection } from "./data";
-import { QUEST_IDS, claimQuest, recordBooster, recordWorkshop, type QuestId, type Reward } from "./quests";
+import { QUEST_IDS, claimQuest, isPeriod, recordBooster, recordWorkshop, type Period, type QuestId, type RatedCounts, type Reward } from "./quests";
 import { craft, recycleAll, recycleOne, tradeUp, upgrade } from "./workshop";
 
 export type CardAction =
@@ -15,7 +15,7 @@ export type CardAction =
   | { type: "craft"; id: number }
   | { type: "tradeUp"; rarity: Rarity }
   | { type: "upgrade"; id: number }
-  | { type: "claimQuest"; id: QuestId };
+  | { type: "claimQuest"; id: QuestId; period: Period };
 
 export type WorkshopAction = Exclude<CardAction, { type: "booster" } | { type: "claimQuest" }>;
 
@@ -49,7 +49,10 @@ export function parseAction(raw: unknown): CardAction | null {
     case "upgrade":
       return isId(a.id) ? { type: a.type, id: a.id } : null;
     case "claimQuest":
-      return QUEST_IDS.includes(a.id as QuestId) ? { type: "claimQuest", id: a.id as QuestId } : null;
+      if (!QUEST_IDS.includes(a.id as QuestId)) return null;
+      // sans période précisée : quête du jour
+      if (a.period !== undefined && !isPeriod(a.period)) return null;
+      return { type: "claimQuest", id: a.id as QuestId, period: (a.period as Period | undefined) ?? "day" };
     case "tradeUp":
       return RARITIES.some((r) => r.id === a.rarity) ? { type: "tradeUp", rarity: a.rarity as Rarity } : null;
     default:
@@ -99,9 +102,14 @@ export function addPack(
   return { pulled: cards, collection: recordBooster(collection, cards, now) };
 }
 
-/** Récupère la récompense d'une quête du jour (`rated` = jeux différents notés aujourd'hui). */
-export function applyClaim(c: Collection, id: QuestId, rated: number, now = Date.now()): CardActionResult | null {
-  const r = claimQuest(c, id, rated, now);
+/** Récupère la récompense d'une quête (`rated` = jeux différents notés aujourd'hui, cette semaine, ce mois). */
+export function applyClaim(
+  c: Collection,
+  action: { id: QuestId; period: Period },
+  rated: RatedCounts,
+  now = Date.now(),
+): CardActionResult | null {
+  const r = claimQuest(c, action.id, rated[action.period], now, action.period);
   return r && { collection: r.collection, reward: r.reward };
 }
 
