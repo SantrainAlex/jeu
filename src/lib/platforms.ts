@@ -63,3 +63,32 @@ export type Period = keyof typeof PERIODS;
 export function parsePeriod(value: string | undefined): Period {
   return value === "jour" || value === "mois" ? value : "semaine";
 }
+
+/**
+ * Retrouve la plateforme du site à partir d'un nom donné par RAWG ou IGDB
+ * (« PlayStation 5 », « Xbox Series S/X », « PC (Microsoft Windows) »…). undefined si le site ne la suit pas.
+ */
+export function matchPlatform(name: string): Platform | undefined {
+  const n = name.toLowerCase();
+  if (/switch 2/.test(n)) return getPlatform("switch-2");
+  if (/switch/.test(n)) return getPlatform("switch");
+  if (/^pc\b|windows/.test(n)) return getPlatform("pc");
+  if (/playstation 5|^ps5/.test(n)) return getPlatform("ps5");
+  if (/playstation 4|^ps4/.test(n)) return getPlatform("ps4");
+  if (/xbox series/.test(n)) return getPlatform("xbox");
+  if (/xbox one/.test(n)) return getPlatform("xbox-one");
+  if (/^(ios|android)$/.test(n)) return getPlatform("mobile");
+  return undefined;
+}
+
+/** Les plateformes d'un jeu : celles suivies par le site (dans l'ordre du site), puis les autres noms tels quels. */
+export function gamePlatforms(names: string[]): { known: Platform[]; others: string[] } {
+  const found = new Set<string>();
+  const others: string[] = [];
+  for (const name of names) {
+    const p = matchPlatform(name);
+    if (p) found.add(p.slug);
+    else if (!others.includes(name)) others.push(name);
+  }
+  return { known: PLATFORMS.filter((p) => found.has(p.slug)), others };
+}
