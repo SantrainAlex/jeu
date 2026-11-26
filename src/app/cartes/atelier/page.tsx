@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
 import { useCardViewer } from "@/components/CardViewer";
 import { TradingCard } from "@/components/TradingCard";
-import { RARITIES, rarityInfo, type Card, type Rarity } from "@/lib/cards";
+import { RARITIES, rarityInfo, withPoolArt, type Card, type Rarity } from "@/lib/cards";
 import { coins, copies } from "@/lib/data";
 import { runCardAction } from "@/lib/cardClient";
 import type { CardAction, CardActionResult } from "@/lib/cardRules";
@@ -51,7 +51,9 @@ export default function WorkshopPage() {
 
   const wallet = coins(collection);
   const preview = recyclePreview(collection, keep);
-  const owned = Object.values(collection.cards);
+  const poolById = pool ? new Map(pool.map((c) => [c.id, c])) : null;
+  // les cartes déjà possédées prennent l'image actuelle (jaquette verticale quand elle existe)
+  const owned = Object.values(collection.cards).map((o) => ({ ...o, card: withPoolArt(o.card, poolById) }));
 
   const missing = useMemo(() => {
     if (!pool) return [];

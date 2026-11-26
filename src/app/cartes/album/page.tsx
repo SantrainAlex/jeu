@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
 import { useCardViewer } from "@/components/CardViewer";
 import { TradingCard } from "@/components/TradingCard";
-import { RARITIES, type Card, type Rarity } from "@/lib/cards";
+import { RARITIES, withPoolArt, type Card, type Rarity } from "@/lib/cards";
 import { coins, copies } from "@/lib/data";
 import { useStore } from "@/lib/store";
 
@@ -32,7 +32,13 @@ export default function AlbumPage() {
       .catch(() => setPool([]));
   }, []);
 
-  const owned = useMemo(() => Object.values(collection.cards), [collection.cards]);
+  const poolById = useMemo(() => (pool ? new Map(pool.map((c) => [c.id, c])) : null), [pool]);
+  // les cartes déjà possédées prennent l'image actuelle (jaquette verticale quand elle existe)
+  const owned = useMemo(
+    () => Object.values(collection.cards).map((o) => ({ ...o, card: withPoolArt(o.card, poolById) })),
+    [collection.cards, poolById],
+  );
+  const vitraux = collection.vitraux.map((v) => ({ ...v, card: withPoolArt(v.card, poolById) }));
   const byRarity = (r: Rarity) => ({
     owned: owned.filter((o) => o.card.rarity === r).length,
     total: pool?.filter((c) => c.rarity === r).length ?? 0,
@@ -117,7 +123,7 @@ export default function AlbumPage() {
         <>
           <h2>Vitraux numérotés</h2>
           <div className="card-grid">
-            {collection.vitraux.map((v) => (
+            {vitraux.map((v) => (
               <TradingCard
                 key={v.number}
                 card={v.card}

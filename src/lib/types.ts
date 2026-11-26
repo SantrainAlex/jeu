@@ -9,6 +9,8 @@ export type Game = {
   name: string;
   released: string | null;
   image: string | null;
+  /** jaquette verticale du jeu (IGDB), idéale pour les cartes à collectionner */
+  cover?: string | null;
   /** note de la communauté sur 5 (0 si inconnue) */
   rating: number;
   genres: Genre[];

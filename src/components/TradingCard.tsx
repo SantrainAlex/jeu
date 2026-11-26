@@ -36,6 +36,8 @@ export function TradingCard({
   const ref = useRef<HTMLButtonElement>(null);
   const r = rarityInfo(card.rarity);
   const year = card.released?.slice(0, 4);
+  // la jaquette verticale a déjà la forme d'une carte ; sinon, l'image large du jeu
+  const art = card.cover ?? card.image;
   const className = ["tcard", `rarity-${card.rarity}`, vitrail ? "vitrail" : "", finish ? `finish-${finish}` : "", hidden ? "hidden" : "revealed", onOpen && !hidden ? "zoomable" : ""].join(" ");
 
   // position de la souris sur la carte → inclinaison et reflet
@@ -77,13 +79,13 @@ export function TradingCard({
         </span>
         <span className="tcard-front">
           <span className="tcard-art">
-            {card.image ? (
+            {art ? (
               <>
                 {/* l'image entière, posée sur un fond flou de la même image pour remplir la carte */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="tcard-art-bg" src={card.image} alt="" loading="lazy" draggable={false} />
+                <img className="tcard-art-bg" src={art} alt="" loading="lazy" draggable={false} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="tcard-art-img" src={card.image} alt="" loading="lazy" draggable={false} />
+                <img className="tcard-art-img" src={art} alt="" loading="lazy" draggable={false} />
               </>
             ) : (
               <span className="tcard-placeholder">{card.name.slice(0, 1)}</span>

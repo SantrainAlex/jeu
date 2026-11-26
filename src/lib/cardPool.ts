@@ -37,6 +37,7 @@ export async function getCardPool(): Promise<{ cards: Card[]; demo: boolean }> {
       id: g.id,
       name: g.name,
       image: g.image,
+      ...(g.cover ? { cover: g.cover } : {}),
       released: g.released,
       rarity: rarityForRank(i + 1),
     })),

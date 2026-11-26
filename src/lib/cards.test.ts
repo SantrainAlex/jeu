@@ -10,6 +10,7 @@ import {
   openPack,
   rarityForRank,
   rollRarity,
+  withPoolArt,
   type Card,
 } from "./cards";
 
@@ -126,5 +127,17 @@ describe("rareté selon la popularité (1 000 cartes)", () => {
       counts[r] = (counts[r] ?? 0) + 1;
     }
     expect(counts).toEqual({ mythique: 20, legendaire: 60, epique: 120, rare: 240, commune: 560 });
+  });
+});
+
+describe("withPoolArt", () => {
+  const old: Card = { id: 7, name: "Dark Souls", image: "wide.jpg", rarity: "epique", released: "2011-09-22" };
+  it("prend la jaquette de la collection actuelle pour une carte déjà possédée", () => {
+    const pool = new Map([[7, { ...old, image: "wide2.jpg", cover: "cover.jpg" }]]);
+    expect(withPoolArt(old, pool)).toMatchObject({ image: "wide2.jpg", cover: "cover.jpg", rarity: "epique" });
+  });
+  it("laisse la carte telle quelle si le jeu n'est plus dans la collection", () => {
+    expect(withPoolArt(old, new Map())).toBe(old);
+    expect(withPoolArt(old, null)).toBe(old);
   });
 });

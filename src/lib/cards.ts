@@ -58,6 +58,8 @@ export type Card = {
   id: number;
   name: string;
   image: string | null;
+  /** jaquette verticale (IGDB) : affichée en priorité sur la carte, car elle a déjà la forme d'une carte */
+  cover?: string | null;
   rarity: Rarity;
   released: string | null;
 };
@@ -181,4 +183,14 @@ export function consumePack(state: PackState, ratingsCount: number, now = Date.n
   if (count > 0) return { ...state, stock: count - 1, stockAt: new Date(since).toISOString() };
   if (availablePacks(state, ratingsCount, now).bonus > 0) return { ...state, bonusClaimed: state.bonusClaimed + 1 };
   return null;
+}
+
+/**
+ * Remet à jour l'image d'une carte déjà possédée avec celle de la collection actuelle
+ * (les anciennes cartes gardent l'image enregistrée au moment où on les a eues).
+ */
+export function withPoolArt(card: Card, pool: Map<number, Card> | null): Card {
+  const fresh = pool?.get(card.id);
+  if (!fresh || (fresh.cover ?? null) === (card.cover ?? null)) return card;
+  return { ...card, image: fresh.image ?? card.image, cover: fresh.cover };
 }
