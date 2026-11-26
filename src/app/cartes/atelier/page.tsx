@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RarityGlyph } from "@/components/RarityGlyph";
 import { useEffect, useMemo, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
 import { useCardViewer } from "@/components/CardViewer";
@@ -159,7 +160,7 @@ export default function WorkshopPage() {
             {[...preview.byRarity].reverse().map((r) => (
               <tr key={r.id}>
                 <td>
-                  <span className="dot" style={{ background: r.color }} /> {r.label}
+                  <RarityGlyph rarity={r.id} /> {r.label}
                 </td>
                 <td className="num mono">+{n(RECYCLE_VALUE[r.id])}</td>
                 <td className="num mono">{n(r.cards)}</td>
@@ -209,8 +210,8 @@ export default function WorkshopPage() {
             return (
               <div key={r.id} className="trade-row">
                 <span>
-                  <span className="dot" style={{ background: r.color }} /> {TRADE_UP_COUNT} {r.label} →{" "}
-                  <span className="dot" style={{ background: to.color }} /> 1 {to.label}
+                  <RarityGlyph rarity={r.id} /> {TRADE_UP_COUNT} {r.label} →{" "}
+                  <RarityGlyph rarity={to.id} /> 1 {to.label}
                 </span>
                 <span className="muted mono">
                   {n(have)} / {TRADE_UP_COUNT}
@@ -258,7 +259,7 @@ export default function WorkshopPage() {
               aria-pressed={craftRarity === r.id}
               onClick={() => setCraftRarity(craftRarity === r.id ? null : r.id)}
             >
-              <span className="dot" style={{ background: r.color }} />
+              <RarityGlyph rarity={r.id} />
               {r.label} · <span className="mono">{n(CRAFT_PRICE[r.id])}</span>
             </button>
           ))}
@@ -284,7 +285,7 @@ export default function WorkshopPage() {
               const r = rarityInfo(c.rarity);
               return (
                 <li key={c.id}>
-                  <span className="dot" style={{ background: r.color }} />
+                  <RarityGlyph rarity={r.id} />
                   <span className="craft-name">{c.name}</span>
                   <span className="muted small">{r.label}</span>
                   <button

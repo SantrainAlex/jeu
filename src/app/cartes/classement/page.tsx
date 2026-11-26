@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
+import { RarityGlyph } from "@/components/RarityGlyph";
 import { RARITIES } from "@/lib/cards";
 import { cloudEnabled, getLeaderboard, getMyRank, useCloud, type RankRow } from "@/lib/cloud";
 import { FINISH_MULTIPLIER, RARITY_POINTS, VITRAIL_POINTS } from "@/lib/score";
 
 const fmt = (n: number) => n.toLocaleString("fr-FR");
-const medal = (rank: number | null) => (rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank ? `${rank}` : "–");
+/** Rang affiché : les trois premiers ont une pastille (or, argent, bronze) avec le numéro, pas seulement une couleur. */
+const medal = (rank: number | null) =>
+  rank && rank <= 3 ? <span className={`podium podium-${rank}`}>{rank}</span> : rank ? `${rank}` : "–";
 
 export default function LeaderboardPage() {
   const cloud = useCloud();
@@ -37,10 +40,10 @@ export default function LeaderboardPage() {
       <ul className="points-scale">
         {RARITIES.map((r) => (
           <li key={r.id}>
-            <span className="dot" style={{ background: r.color }} /> {r.label} : <strong>{RARITY_POINTS[r.id]}</strong>
+            <RarityGlyph rarity={r.id} /> {r.label} : <strong>{RARITY_POINTS[r.id]}</strong>
           </li>
         ))}
-        <li>🪟 Vitrail numéroté : <strong>{VITRAIL_POINTS}</strong></li>
+        <li><RarityGlyph rarity="vitrail" /> Vitrail numéroté : <strong>{VITRAIL_POINTS}</strong></li>
       </ul>
       <p className="muted small">
         Les doublons ne comptent pas. Une carte en finition argent vaut ×{FINISH_MULTIPLIER.argent}, en or ×

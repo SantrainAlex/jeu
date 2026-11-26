@@ -14,6 +14,7 @@ import { gamePlatforms } from "@/lib/platforms";
 import { PlayerPerf } from "@/components/PlayerPerf";
 import { hasPrices, shopLinks } from "@/lib/shops";
 import { SITE_NAME } from "@/lib/site";
+import { Icon, platformIcon } from "@/components/Icon";
 
 // La même fiche sert au titre de l'onglet et à la page : on ne la demande qu'une fois.
 const load = cache(async (key: string) => {
@@ -230,7 +231,8 @@ function PlatformBadges({ names }: { names: string[] }) {
   return (
     <div className="platform-badges" aria-label="Disponible sur">
       {known.map((p) => (
-        <Link key={p.slug} href={`/plateforme/${p.slug}`} className="platform-badge" style={{ "--accent": p.color } as React.CSSProperties}>
+        <Link key={p.slug} href={`/plateforme/${p.slug}`} className="platform-badge">
+          <Icon name={platformIcon(p.slug)} size={14} />
           {p.short}
         </Link>
       ))}
@@ -300,7 +302,7 @@ function Scores({ game: g }: { game: GameDetails }) {
     <ul className="scores">
       {g.rating > 0 && (
         <li>
-          <strong className="mono gold">★ {g.rating.toFixed(1)}</strong>
+          <strong className="mono gold"><Icon name="star" size={14} filled /> {g.rating.toFixed(1).replace(".", ",")}</strong>
           <span>
             Joueurs{g.ratingCount > 0 && ` · ${g.ratingCount.toLocaleString("fr-FR")} avis`}
           </span>

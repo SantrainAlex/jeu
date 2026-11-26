@@ -111,7 +111,7 @@ export function PlayerPerf({ gameId, platforms }: { gameId: number; platforms: P
         {platforms.map((p) => {
           const s = byPlatform.get(p.slug);
           return (
-            <div key={p.slug} className="perf-row" role="row" style={{ "--accent": p.color } as React.CSSProperties}>
+            <div key={p.slug} className="perf-row" role="row">
               <span className="perf-plat" role="cell">{p.short}</span>
               {s ? (
                 <>

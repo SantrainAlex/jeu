@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PLATFORMS } from "@/lib/platforms";
 import { togglePlatform, useStore } from "@/lib/store";
 import { UsernameForm } from "@/components/UsernameForm";
+import { Icon, platformIcon } from "@/components/Icon";
 
 export default function ProfilePage() {
   const [{ profile, ratings }, ready] = useStore();
@@ -32,7 +33,7 @@ export default function ProfilePage() {
           {PLATFORMS.map((p) => (
             <tr key={p.slug}>
               <td>
-                <span className="dot" style={{ background: p.color }} /> {p.name}
+                <Icon name={platformIcon(p.slug)} size={18} /> {p.name}
               </td>
               {(["owned", "interested"] as const).map((list) => (
                 <td key={list}>

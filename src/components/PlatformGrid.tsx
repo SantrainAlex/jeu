@@ -3,15 +3,19 @@
 import Link from "next/link";
 import { PLATFORMS, type Platform } from "@/lib/platforms";
 import { useStore } from "@/lib/store";
+import { Icon, platformIcon } from "./Icon";
 
 function Card({ p, badge }: { p: Platform; badge?: string }) {
   return (
-    <Link href={`/plateforme/${p.slug}`} className="platform-card" style={{ "--accent": p.color } as React.CSSProperties}>
-      <span>
+    <Link href={`/plateforme/${p.slug}`} className={badge ? "platform-card mine" : "platform-card"}>
+      <span className="platform-icon">
+        <Icon name={platformIcon(p.slug)} size={22} />
+      </span>
+      <span className="platform-name">
         {p.name}
         {badge && <small className="badge">{badge}</small>}
       </span>
-      <span className="arrow">→</span>
+      <Icon name="chevron-right" size={18} className="arrow" />
     </Link>
   );
 }

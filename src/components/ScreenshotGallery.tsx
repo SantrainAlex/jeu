@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Shot } from "@/lib/details";
+import { Icon } from "./Icon";
 
 /** Galerie de captures d'écran ; un clic ouvre la photo en grand (flèches du clavier, glisser sur téléphone). */
 export function ScreenshotGallery({ shots, title }: { shots: Shot[]; title: string }) {
@@ -63,7 +64,7 @@ export function ScreenshotGallery({ shots, title }: { shots: Shot[]; title: stri
             <span className="lightbox-count mono">
               {open + 1} / {shots.length}
             </span>
-            <button type="button" className="lightbox-close" onClick={close} aria-label="Fermer">✕</button>
+            <button type="button" className="lightbox-close" onClick={close} aria-label="Fermer"><Icon name="close" size={20} /></button>
             {shots.length > 1 && (
               <>
                 <button type="button" className="lightbox-nav prev" onClick={() => move(-1)} aria-label="Photo précédente">‹</button>
