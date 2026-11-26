@@ -226,7 +226,11 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .button.gg { background: var(--gg); border-color: var(--gg); color: var(--on-gg); }
 
 /* Onglets : soulignés d'une barre de 4px, comme dans le design */
-.tabs { display: flex; gap: 4px; margin: 1.25rem 0 1.5rem; overflow-x: auto; border-bottom: 2px solid var(--line); max-width: 100%; scrollbar-width: none; }
+/* La ligne du bas est une ombre intérieure (et non une bordure) : la barre de l'onglet actif reste dans la boîte,
+   sinon Windows affiche une petite barre de défilement verticale. */
+.tabs, .quest-tabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; box-shadow: inset 0 -2px 0 var(--line); }
+.tabs::-webkit-scrollbar, .quest-tabs::-webkit-scrollbar { display: none; }
+.tabs { display: flex; gap: 4px; margin: 1.25rem 0 1.5rem; max-width: 100%; }
 .tab {
   position: relative; display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; padding: 8px 14px 10px;
   color: var(--ink-muted); font-weight: 600; font-size: 0.95rem; white-space: nowrap; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
@@ -235,7 +239,7 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .tab:hover { color: var(--text); background: var(--surface-2); }
 .tab.active { color: var(--ink); }
 .tab.active .icon { color: var(--raid); }
-.tab.active::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -2px; height: 4px; background: var(--raid); border-radius: 2px 2px 0 0; }
+.tab.active::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 4px; background: var(--raid); border-radius: 2px 2px 0 0; }
 
 .sorts { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0 1.25rem; }
 /* Puces de filtre : bord franc, l'état choisi est inversé et coché */
@@ -629,7 +633,7 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 }
 .quests-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .quests-head h2 { margin: 0; }
-.quest-tabs { display: flex; gap: 4px; margin: 1rem 0 0.6rem; border-bottom: 2px solid var(--line); overflow-x: auto; }
+.quest-tabs { display: flex; gap: 4px; margin: 1rem 0 0.6rem; }
 .quest-tab {
   position: relative; display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; padding: 8px 14px 10px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: none; border: 0; color: var(--ink-muted);
@@ -637,7 +641,7 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 }
 .quest-tab:hover { color: var(--text); background: var(--surface-2); }
 .quest-tab.active { color: var(--ink); }
-.quest-tab.active::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -2px; height: 4px; background: var(--raid); border-radius: 2px 2px 0 0; }
+.quest-tab.active::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 4px; background: var(--raid); border-radius: 2px 2px 0 0; }
 .quest-dot {
   min-width: 1.3rem; height: 1.3rem; padding: 0 0.3rem; border-radius: var(--radius-xs); background: var(--gg); color: var(--on-gg);
   font: 700 0.68rem/1 var(--font-mono), monospace; display: inline-grid; place-items: center;
