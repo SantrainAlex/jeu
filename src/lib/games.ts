@@ -189,6 +189,10 @@ export const CATALOG_PAGE_SIZE = 24;
 /**
  * Une page du catalogue d'une plateforme (tous les jeux déjà sortis), pour retrouver et noter ses anciens jeux.
  * Chaque source renvoie sa page ; les doublons de la page sont fusionnés.
+ *
+ * RAWG et IGDB ne classent pas les jeux dans le même ordre : un jeu peut être 20e chez RAWG (donc en page 1)
+ * et 30e chez IGDB (donc en page 2). Pour qu'un jeu ne revienne jamais d'une page à l'autre, on retire
+ * de la page N tous les jeux que les deux sources ont déjà donnés dans les pages 1 à N-1.
  */
 export async function getCatalog(
   platform: Platform,
@@ -203,6 +207,7 @@ export async function getCatalog(
     return games;
   };
   const hide = startHiding(platform);
+  const seen = gamesBeforePage(platform, opts);
   // En page 1 d'une recherche, on demande aussi à chaque source le jeu qui porte exactement ce titre :
   // la recherche « floue » des sources peut le noyer ou l'oublier (ex. « Find the Needle »).
   const exact = opts.page === 1 && opts.query ? opts.query : null;
@@ -218,8 +223,46 @@ export async function getCatalog(
       ? () => onPlatforms("igdb", [platform], (ids) => withExact(igdbCatalog(ids, o), () => igdbExactTitle(ids, exact!)))
       : null,
   );
-  const ranked = opts.query ? rankByTitle(result.games, opts.query) : result.games;
+  const already = await seen;
+  const fresh = already.length ? result.games.filter((g) => !already.some((s) => isSameGame(g, s))) : result.games;
+  const ranked = opts.query ? rankByTitle(fresh, opts.query) : fresh;
   return { ...result, games: (await hide)(ranked), hasMore: full };
+}
+
+/** Nombre de pages précédentes demandées en même temps aux sources (IGDB refuse plus de 4 requêtes par seconde). */
+const PAGES_AT_ONCE = 4;
+
+/**
+ * Tous les jeux déjà affichés dans les pages 1 à N-1 du catalogue (y compris les titres exacts de la page 1
+ * d'une recherche). Ces pages sont en général déjà en cache, puisqu'on vient de les voir.
+ * Si une source ne répond pas, on fait sans elle : au pire un doublon, jamais une page vide par erreur.
+ */
+async function gamesBeforePage(platform: Platform, opts: { query?: string; sort: CatalogSort; page: number }) {
+  if (opts.page <= 1) return [] as Game[];
+  const pageOf = (page: number) => ({ ...opts, page, pageSize: CATALOG_PAGE_SIZE });
+  const safe = (call: () => Promise<Game[]>) => atMost(call(), MAX_WAIT).then((g) => g ?? []);
+  const fromSource = (source: "rawg" | "igdb") =>
+    safe(() =>
+      onPlatforms(source, [platform], async (ids) => {
+        const games: Game[] = [];
+        if (opts.query) {
+          games.push(...(await safe(() => (source === "rawg" ? rawgExactTitle : igdbExactTitle)(ids, opts.query!))));
+        }
+        const pages = Array.from({ length: opts.page - 1 }, (_, i) => i + 1);
+        for (let i = 0; i < pages.length; i += PAGES_AT_ONCE) {
+          const batch = pages.slice(i, i + PAGES_AT_ONCE).map((p) =>
+            safe(() => (source === "rawg" ? rawgCatalog(ids, pageOf(p)) : igdbCatalog(ids, pageOf(p)))),
+          );
+          for (const list of await Promise.all(batch)) games.push(...list);
+        }
+        return games;
+      }),
+    );
+  const [rawg, igdb] = await Promise.all([
+    hasRawg() ? fromSource("rawg") : Promise.resolve([] as Game[]),
+    hasIgdb() ? fromSource("igdb") : Promise.resolve([] as Game[]),
+  ]);
+  return [...rawg, ...igdb];
 }
 
 /** Attend une promesse au plus `ms` millisecondes ; au-delà (ou en cas d'erreur) renvoie null. */
