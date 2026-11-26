@@ -17,7 +17,8 @@ import {
   type RecoSort,
 } from "@/lib/reco";
 import { useStore } from "@/lib/store";
-import { Icon, platformIcon } from "@/components/Icon";
+import { Icon } from "@/components/Icon";
+import { PlatformMark } from "@/components/PlatformMark";
 
 type State = { status: "idle" | "loading" | "done" | "error"; games: Game[]; demo: boolean };
 
@@ -200,7 +201,7 @@ export default function RecommendationsPage() {
                             className={owned ? "tag platform-tag owned" : "tag platform-tag"}
                             title={owned ? "Tu as cette console" : "Cette console t'intéresse"}
                           >
-                            {owned ? <Icon name="check" size={14} strokeWidth={2.5} /> : <Icon name={platformIcon(slug)} size={14} />}
+                            <PlatformMark slug={slug} size="sm" />
                             {p?.short ?? slug}
                           </span>
                         );
