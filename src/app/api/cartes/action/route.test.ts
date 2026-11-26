@@ -5,7 +5,7 @@ import { EMPTY_COLLECTION, type Collection } from "@/lib/data";
 // Une fausse base en mémoire à la place de Supabase, pour vérifier les règles du serveur.
 const db = vi.hoisted(() => ({
   row: { collection: {} as unknown, version: 0 },
-  ratings: { total: 0, today: 0 },
+  ratings: { total: 0, rated: { day: 0, week: 0, month: 0 } },
   user: "u1" as string | null,
   /** simule une autre demande qui modifie la collection juste avant l'enregistrement */
   racing: 0,
@@ -41,7 +41,7 @@ const call = (body: unknown) => POST(new Request("http://x/api/cartes/action", {
 
 beforeEach(() => {
   db.row = { collection: EMPTY_COLLECTION, version: 0 };
-  db.ratings = { total: 0, today: 0 };
+  db.ratings = { total: 0, rated: { day: 0, week: 0, month: 0 } };
   db.user = "u1";
   db.racing = 0;
 });
@@ -81,7 +81,7 @@ describe("POST /api/cartes/action", () => {
   it("donne la récompense d'une quête finie une seule fois", async () => {
     // 3 boosters ouverts + les autres quêtes du jour finies grâce aux compteurs du serveur
     const { questBoard } = await import("@/lib/quests");
-    db.ratings = { total: 5, today: 5 };
+    db.ratings = { total: 5, rated: { day: 5, week: 5, month: 5 } };
     for (let i = 0; i < 4; i++) await call({ type: "booster" });
     const opened = questBoard(db.row.collection as Collection, 5).find((q) => q.id === "opened");
     if (opened) {
@@ -97,10 +97,12 @@ describe("POST /api/cartes/action", () => {
   it("refuse une quête pas finie ou inconnue", async () => {
     expect((await call({ type: "claimQuest", id: "all" })).status).toBe(409);
     expect((await call({ type: "claimQuest", id: "triche" })).status).toBe(400);
+    expect((await call({ type: "claimQuest", id: "all", period: "annee" })).status).toBe(400);
+    expect((await call({ type: "claimQuest", id: "all", period: "week" })).status).toBe(409);
   });
 
   it("garde au plus 3 boosters de l'ancien système « tous les 3 jeux notés »", async () => {
-    db.ratings = { total: 60, today: 0 };
+    db.ratings = { total: 60, rated: { day: 0, week: 0, month: 0 } };
     for (let i = 0; i < 8; i++) expect((await call({ type: "booster" })).status).toBe(200);
     expect((await call({ type: "booster" })).status).toBe(409);
   });

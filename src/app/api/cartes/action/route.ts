@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         }
         result = addPack(collection, drawn);
       } else if (action.type === "claimQuest") {
-        result = applyClaim(collection, action.id, ratings.today);
+        result = applyClaim(collection, action, ratings.rated);
         if (!result) return fail("Cette quête n'est pas encore finie, ou sa récompense est déjà récupérée.", 409);
       } else {
         result = applyWorkshop(collection, action, pool);

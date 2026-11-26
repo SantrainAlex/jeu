@@ -5,7 +5,7 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { EMPTY_COLLECTION, normalize, type Collection } from "../data";
-import { ratedToday } from "../quests";
+import { ratedCounts, type RatedCounts } from "../quests";
 
 let admin: SupabaseClient | null = null;
 
@@ -55,21 +55,21 @@ export async function saveCards(sb: SupabaseClient, userId: string, row: CardsRo
   return (data?.length ?? 0) === 1;
 }
 
-export type RatingsInfo = { total: number; today: number };
+export type RatingsInfo = { total: number; rated: RatedCounts };
 
 /**
  * Les notes du joueur : combien de jeux notés en tout (passage à l'ancien système de bonus)
- * et combien de jeux différents notés aujourd'hui (quête « Note N jeux »).
+ * et combien de jeux différents notés aujourd'hui, cette semaine et ce mois (quêtes « Note N jeux »).
  * Ces notes viennent du navigateur, mais elles ne rapportent qu'une récompense par jour au maximum.
  */
 export async function ratingsInfo(sb: SupabaseClient, userId: string, now = Date.now()): Promise<RatingsInfo> {
   const { data, error } = await sb.from("user_data").select("data->ratings").eq("user_id", userId).maybeSingle();
   if (error) throw error;
   const ratings = (data as { ratings?: unknown } | null)?.ratings;
-  if (!ratings || typeof ratings !== "object") return { total: 0, today: 0 };
+  if (!ratings || typeof ratings !== "object") return { total: 0, rated: { day: 0, week: 0, month: 0 } };
   const list = ratings as Record<string, { stars?: unknown; ratedAt?: unknown }>;
   const total = Object.values(list).filter((r) => r && typeof r.stars === "number" && r.stars >= 1 && r.stars <= 5).length;
-  return { total, today: ratedToday(list, now) };
+  return { total, rated: ratedCounts(list, now) };
 }
 
 /** Vitraux restants dans le stock partagé. */

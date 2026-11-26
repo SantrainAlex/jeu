@@ -531,6 +531,17 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 }
 .quests-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .quests-head h2 { margin: 0; }
+.quest-tabs { display: flex; gap: 0.4rem; margin: 1rem 0 0.6rem; flex-wrap: wrap; }
+.quest-tab {
+  display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.9rem; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--text-dim); font: inherit; font-weight: 600; cursor: pointer;
+}
+.quest-tab:hover { color: var(--text); }
+.quest-tab.active { background: var(--primary-soft); border-color: var(--primary-line); color: var(--text); }
+.quest-dot {
+  min-width: 1.2rem; height: 1.2rem; padding: 0 0.3rem; border-radius: 999px; background: var(--primary); color: #fff;
+  font-size: 0.72rem; display: inline-grid; place-items: center;
+}
 .quest-list { list-style: none; display: grid; gap: 0.75rem; margin-top: 1rem; }
 .quest {
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.9rem;

@@ -7,7 +7,7 @@
 import { useSyncExternalStore } from "react";
 import { VITRAIL_TOTAL, availablePacks, openPack, type Card, type PulledCard } from "./cards";
 import { addPack, applyClaim } from "./cardRules";
-import { ratedToday, withLegacyBonus, type QuestId, type Reward } from "./quests";
+import { ratedCounts, withLegacyBonus, type Period, type QuestId, type Reward } from "./quests";
 import { EMPTY, normalize, type Collection, type Data, type Profile, type Rating } from "./data";
 
 export type { Collection, Data, Profile, Rating } from "./data";
@@ -124,9 +124,9 @@ export function openLocalBooster(pool: Card[]): PulledCard[] | null {
 }
 
 /** Récupère la récompense d'une quête du jour SANS compte (avec les comptes, c'est le serveur qui le fait). */
-export function claimLocalQuest(id: QuestId): Reward | null {
+export function claimLocalQuest(action: { id: QuestId; period: Period }): Reward | null {
   const d = read();
-  const result = applyClaim(withLegacyBonus(d.collection, Object.keys(d.ratings).length), id, ratedToday(d.ratings));
+  const result = applyClaim(withLegacyBonus(d.collection, Object.keys(d.ratings).length), action, ratedCounts(d.ratings));
   if (!result) return null;
   write((x) => ({ ...x, collection: result.collection }));
   return result.reward ?? null;

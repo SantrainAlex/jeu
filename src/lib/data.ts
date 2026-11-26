@@ -50,8 +50,10 @@ export type Collection = {
   bonusClaimed: number;
   /** boosters gagnés avec les quêtes du jour, pas encore ouverts (absent = pas encore passé aux quêtes) */
   extraPacks?: number;
-  /** avancement des quêtes du jour */
+  /** avancement des quêtes du jour, de la semaine et du mois */
   quests?: QuestState;
+  questsWeek?: QuestState;
+  questsMonth?: QuestState;
   packsOpened: number;
   /** vitraux distribués sur ce navigateur quand on n'est pas connecté (le stock en ligne est partagé) */
   vitrailsGiven: number;
