@@ -6,7 +6,8 @@
  */
 import { useSyncExternalStore } from "react";
 import { VITRAIL_TOTAL, availablePacks, openPack, type Card, type PulledCard } from "./cards";
-import { addPack } from "./cardRules";
+import { addPack, applyClaim } from "./cardRules";
+import { ratedToday, withLegacyBonus, type QuestId, type Reward } from "./quests";
 import { EMPTY, normalize, type Collection, type Data, type Profile, type Rating } from "./data";
 
 export type { Collection, Data, Profile, Rating } from "./data";
@@ -110,16 +111,25 @@ export function removeRating(id: number) {
 export function openLocalBooster(pool: Card[]): PulledCard[] | null {
   if (pool.length === 0) return null;
   const before = read();
-  const ratingsCount = Object.keys(before.ratings).length;
-  if (availablePacks(before.collection, ratingsCount).total === 0) return null;
+  const collection = withLegacyBonus(before.collection, Object.keys(before.ratings).length);
+  if (availablePacks(collection).total === 0) return null;
   const { cards } = openPack(pool, {
     vitrailsLeft: Math.max(0, VITRAIL_TOTAL - before.collection.vitrailsGiven),
     nextVitrailNumber: before.collection.vitrailsGiven + 1,
   });
-  const result = addPack(before.collection, cards, ratingsCount, Date.now(), { countLocalVitrail: true });
+  const result = addPack(collection, cards, Date.now(), { countLocalVitrail: true });
   if (!result) return null;
   write((d) => ({ ...d, collection: result.collection }));
   return result.pulled;
+}
+
+/** Récupère la récompense d'une quête du jour SANS compte (avec les comptes, c'est le serveur qui le fait). */
+export function claimLocalQuest(id: QuestId): Reward | null {
+  const d = read();
+  const result = applyClaim(withLegacyBonus(d.collection, Object.keys(d.ratings).length), id, ratedToday(d.ratings));
+  if (!result) return null;
+  write((x) => ({ ...x, collection: result.collection }));
+  return result.reward ?? null;
 }
 
 /** Remplace la collection par celle renvoyée par le serveur (sans la renvoyer au compte). */

@@ -23,13 +23,13 @@ describe("parseAction (demandes venues du navigateur)", () => {
 describe("addPack", () => {
   it("refuse d'ouvrir un booster quand la réserve est vide", () => {
     let c: Collection = EMPTY_COLLECTION;
-    for (let i = 0; i < MAX_STOCK; i++) c = addPack(c, [card(i)], 0, T0)!.collection;
-    expect(addPack(c, [card(99)], 0, T0)).toBeNull();
+    for (let i = 0; i < MAX_STOCK; i++) c = addPack(c, [card(i)], T0)!.collection;
+    expect(addPack(c, [card(99)], T0)).toBeNull();
     // 30 minutes plus tard, un booster est revenu
-    expect(addPack(c, [card(99)], 0, T0 + 30 * 60 * 1000)).not.toBeNull();
+    expect(addPack(c, [card(99)], T0 + 30 * 60 * 1000)).not.toBeNull();
   });
   it("marque les nouvelles cartes et compte les doublons", () => {
-    const r = addPack(EMPTY_COLLECTION, [card(1), card(1), card(2)], 0, T0)!;
+    const r = addPack(EMPTY_COLLECTION, [card(1), card(1), card(2)], T0)!;
     expect(r.pulled.map((c) => c.isNew)).toEqual([true, false, true]);
     expect(r.collection.cards[1].count).toBe(2);
     expect(r.collection.packsOpened).toBe(1);

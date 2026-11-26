@@ -9,7 +9,6 @@ import {
   MAX_STOCK,
   PACK_SIZE,
   RECHARGE_MS,
-  RATINGS_PER_BONUS,
   VITRAIL_CHANCE,
   VITRAIL_TOTAL,
   availablePacks,
@@ -20,6 +19,7 @@ import {
 } from "@/lib/cards";
 import { runCardAction } from "@/lib/cardClient";
 import { cloudEnabled, getVitrailsLeft, useCloud } from "@/lib/cloud";
+import { msUntilReset, questBoard, ratedToday, rewardLabel, withLegacyBonus, type QuestId, type QuestView } from "@/lib/quests";
 import { useStore } from "@/lib/store";
 
 const pct = (x: number) =>
@@ -64,8 +64,10 @@ export default function CardsPage() {
   }, []);
 
   const ratingsCount = Object.keys(ratings).length;
-  const packs = availablePacks(collection, ratingsCount, now);
-  const nextBonusIn = RATINGS_PER_BONUS - (ratingsCount % RATINGS_PER_BONUS);
+  const packs = availablePacks(withLegacyBonus(collection, ratingsCount), now);
+  const quests = questBoard(collection, ratedToday(ratings, now), now);
+  const [claiming, setClaiming] = useState<QuestId | null>(null);
+  const [questMsg, setQuestMsg] = useState<string | null>(null);
   const vitrailsLeft = cloudEnabled ? (onlineLeft ?? VITRAIL_TOTAL) : Math.max(0, VITRAIL_TOTAL - collection.vitrailsGiven);
   const signedOutWithAccounts = cloudEnabled && cloud.status !== "signedIn";
   const canOpen = ready && Boolean(pool) && packs.total > 0 && !signedOutWithAccounts && !busy;
@@ -90,6 +92,17 @@ export default function CardsPage() {
       }, reduced ? 0 : 950);
       if ("vitrailsLeft" in res && typeof res.vitrailsLeft === "number") setOnlineLeft(res.vitrailsLeft);
     }
+  };
+
+  const claim = async (id: QuestId) => {
+    if (!pool || claiming) return;
+    setQuestMsg(null);
+    setClaiming(id);
+    // avec les comptes, c'est le serveur qui vérifie que la quête est finie et donne la récompense
+    const res = await runCardAction({ type: "claimQuest", id }, pool.cards);
+    setClaiming(null);
+    if ("error" in res) setQuestMsg(res.error);
+    else if (res.reward) setQuestMsg(`🎉 Récompense reçue : ${rewardLabel(res.reward)} !`);
   };
 
   const reveal = (indices: number[]) => {
@@ -214,12 +227,19 @@ export default function CardsPage() {
             ♻️ Tes doublons servent à l&apos;<Link href="/cartes/atelier">atelier</Link> : recycle-les en pièces, fabrique
             les cartes qui te manquent ou passe-les en argent et en or
           </li>
-          <li>
-            ⭐ +1 booster tous les {RATINGS_PER_BONUS} jeux notés : encore {nextBonusIn} note{nextBonusIn > 1 ? "s" : ""} pour le
-            prochain
-          </li>
+          <li>🎯 Termine les quêtes du jour (juste en dessous) pour gagner des boosters et des pièces en plus</li>
         </ul>
       </section>
+
+      <QuestPanel
+        quests={quests}
+        now={now}
+        message={questMsg}
+        claiming={claiming}
+        disabled={!ready || !pool || signedOutWithAccounts}
+        signedOut={signedOutWithAccounts && cloud.status === "signedOut"}
+        onClaim={claim}
+      />
 
       <section className="odds">
         <h2>Chances par pack</h2>
@@ -277,6 +297,65 @@ function PackSummary({ cards }: { cards: PulledCard[] }) {
         </>
       )}
     </span>
+  );
+}
+
+/** Les quêtes du jour : avancement, récompense, et bouton pour la récupérer. */
+function QuestPanel(props: {
+  quests: QuestView[];
+  now: number;
+  message: string | null;
+  claiming: QuestId | null;
+  disabled: boolean;
+  signedOut: boolean;
+  onClaim: (id: QuestId) => void;
+}) {
+  const { quests, now, message, claiming, disabled, signedOut, onClaim } = props;
+  const left = msUntilReset(now);
+  const h = Math.floor(left / 3_600_000);
+  const m = Math.floor((left % 3_600_000) / 60_000);
+  return (
+    <section className="quests" aria-labelledby="quests-title">
+      <div className="quests-head">
+        <h2 id="quests-title">Quêtes du jour</h2>
+        <span className="muted small mono">Nouvelles quêtes dans {h > 0 ? `${h} h ${String(m).padStart(2, "0")}` : `${m} min`}</span>
+      </div>
+      <p className="muted small">Chaque récompense se récupère une seule fois par jour. Les quêtes changent tous les jours à minuit.</p>
+      {message && <p className="notice">{message}</p>}
+      <ul className="quest-list">
+        {quests.map((q) => (
+          <li key={q.id} className={q.claimed ? "quest claimed" : q.done ? "quest done" : "quest"}>
+            <span className="quest-icon" aria-hidden="true">{q.icon}</span>
+            <div className="quest-body">
+              <strong>{q.label}</strong>
+              <div className="quest-bar" role="progressbar" aria-valuemin={0} aria-valuemax={q.goal} aria-valuenow={q.progress} aria-label={q.label}>
+                <span style={{ width: `${(100 * q.progress) / q.goal}%` }} />
+              </div>
+              <span className="muted small">
+                {q.progress}/{q.goal} · récompense : {rewardLabel(q.reward)}
+              </span>
+            </div>
+            {q.claimed ? (
+              <span className="quest-ok">✓ Récupérée</span>
+            ) : (
+              <button
+                type="button"
+                className={q.done ? "button" : "button ghost"}
+                disabled={!q.done || disabled || claiming !== null}
+                onClick={() => onClaim(q.id)}
+              >
+                {claiming === q.id ? "…" : "Récupérer"}
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {signedOut && (
+        <p className="muted small">
+          <Link href="/connexion">Connecte-toi</Link> pour faire les quêtes.
+        </p>
+      )}
+    </section>
   );
 }
 

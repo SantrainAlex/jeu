@@ -60,6 +60,8 @@ export function mergeData(local: Data, cloud: Data): Data {
       // réserve de boosters : celle de la dernière ouverture (la plus récente)
       ...latestStock(local.collection, cloud.collection),
       bonusClaimed: Math.max(local.collection.bonusClaimed, cloud.collection.bonusClaimed),
+      extraPacks: cloud.collection.extraPacks ?? local.collection.extraPacks,
+      quests: cloud.collection.quests ?? local.collection.quests,
       packsOpened: Math.max(local.collection.packsOpened, cloud.collection.packsOpened),
       vitrailsGiven: Math.max(local.collection.vitrailsGiven, cloud.collection.vitrailsGiven),
       coinsEarned: Math.max(local.collection.coinsEarned, cloud.collection.coinsEarned),

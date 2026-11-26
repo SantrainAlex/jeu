@@ -1,4 +1,5 @@
 import type { Card } from "./cards";
+import type { QuestState } from "./quests";
 import type { Genre } from "./types";
 
 /** Toutes les données d'un joueur : profil, notes et collection de cartes. */
@@ -45,8 +46,12 @@ export type Collection = {
   /** boosters en réserve (1 toutes les 30 min, 5 maximum) au moment `stockAt` ; null = réserve pleine */
   stock?: number;
   stockAt?: string | null;
-  /** nombre de boosters bonus (gagnés en notant) déjà ouverts */
+  /** ancien système (1 booster tous les 3 jeux notés) : nombre de ces boosters déjà ouverts */
   bonusClaimed: number;
+  /** boosters gagnés avec les quêtes du jour, pas encore ouverts (absent = pas encore passé aux quêtes) */
+  extraPacks?: number;
+  /** avancement des quêtes du jour */
+  quests?: QuestState;
   packsOpened: number;
   /** vitraux distribués sur ce navigateur quand on n'est pas connecté (le stock en ligne est partagé) */
   vitrailsGiven: number;

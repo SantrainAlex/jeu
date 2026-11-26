@@ -130,9 +130,6 @@ export function openPack(
 
 // ---------- Boosters disponibles ----------
 
-/** Un booster offert tous les N nouveaux jeux notés. */
-export const RATINGS_PER_BONUS = 3;
-
 /** Un booster se recharge toutes les 30 minutes… */
 export const RECHARGE_MS = 30 * 60 * 1000;
 /** …jusqu'à 5 boosters en réserve : à 5, la recharge s'arrête ; dès qu'on en ouvre un, elle repart. */
@@ -150,7 +147,8 @@ export type PackState = {
   /** boosters en réserve au moment `stockAt` (null = jamais utilisé : la réserve est pleine) */
   stock?: number;
   stockAt?: string | null;
-  bonusClaimed: number;
+  /** boosters gagnés avec les quêtes du jour, pas encore ouverts */
+  extraPacks?: number;
 };
 
 /**
@@ -165,9 +163,9 @@ export function recharge(state: PackState, now = Date.now()) {
   return { count, since: count >= MAX_STOCK ? now : at + gained * RECHARGE_MS };
 }
 
-export function availablePacks(state: PackState, ratingsCount: number, now = Date.now()) {
+export function availablePacks(state: PackState, now = Date.now()) {
   const { count, since } = recharge(state, now);
-  const bonus = Math.max(0, Math.floor(ratingsCount / RATINGS_PER_BONUS) - state.bonusClaimed);
+  const bonus = Math.max(0, state.extraPacks ?? 0);
   return {
     timed: count,
     bonus,
@@ -177,11 +175,11 @@ export function availablePacks(state: PackState, ratingsCount: number, now = Dat
   };
 }
 
-/** Nouvel état après l'ouverture d'un booster : la réserve d'abord, sinon un bonus gagné en notant. */
-export function consumePack(state: PackState, ratingsCount: number, now = Date.now()): PackState | null {
+/** Nouvel état après l'ouverture d'un booster : la réserve d'abord, sinon un booster gagné avec les quêtes. */
+export function consumePack<T extends PackState>(state: T, now = Date.now()): T | null {
   const { count, since } = recharge(state, now);
   if (count > 0) return { ...state, stock: count - 1, stockAt: new Date(since).toISOString() };
-  if (availablePacks(state, ratingsCount, now).bonus > 0) return { ...state, bonusClaimed: state.bonusClaimed + 1 };
+  if ((state.extraPacks ?? 0) > 0) return { ...state, extraPacks: state.extraPacks! - 1 };
   return null;
 }
 
