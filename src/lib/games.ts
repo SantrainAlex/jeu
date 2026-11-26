@@ -1,13 +1,23 @@
 import { combineDetails, parseGameKey, type GameDetails } from "./details";
 import { demoCandidates, demoCatalogPage, demoDetails, demoReleases } from "./demo";
-import { hasIgdb, igdbByGenres, igdbCatalog, igdbDetails, igdbFind, igdbPlatformId, igdbReleases } from "./igdb";
-import { mergeGames } from "./merge";
+import {
+  hasIgdb,
+  igdbByGenres,
+  igdbCatalog,
+  igdbDetails,
+  igdbExactTitle,
+  igdbFind,
+  igdbPlatformId,
+  igdbReleases,
+} from "./igdb";
+import { mergeGames, rankByTitle } from "./merge";
 import { PERIODS, type Period, type Platform } from "./platforms";
 import {
   hasRawg,
   rawgByGenres,
   rawgCatalog,
   rawgDetails,
+  rawgExactTitle,
   rawgFind,
   rawgPlatformId,
   rawgReleases,
@@ -168,11 +178,23 @@ export async function getCatalog(
     if (games.length >= CATALOG_PAGE_SIZE) full = true;
     return games;
   };
+  // En page 1 d'une recherche, on demande aussi à chaque source le jeu qui porte exactement ce titre :
+  // la recherche « floue » des sources peut le noyer ou l'oublier (ex. « Find the Needle »).
+  const exact = opts.page === 1 && opts.query ? opts.query : null;
+  const withExact = (page: Promise<Game[]>, find: () => Promise<Game[]>) =>
+    exact
+      ? Promise.all([page.then(track), find().catch(() => [] as Game[])]).then(([games, same]) => [...same, ...games])
+      : page.then(track);
   const result = await fromBothSources(
-    hasRawg() ? () => onPlatforms("rawg", [platform], (ids) => rawgCatalog(ids, o)).then(track) : null,
-    hasIgdb() ? () => onPlatforms("igdb", [platform], (ids) => igdbCatalog(ids, o)).then(track) : null,
+    hasRawg()
+      ? () => onPlatforms("rawg", [platform], (ids) => withExact(rawgCatalog(ids, o), () => rawgExactTitle(ids, exact!)))
+      : null,
+    hasIgdb()
+      ? () => onPlatforms("igdb", [platform], (ids) => withExact(igdbCatalog(ids, o), () => igdbExactTitle(ids, exact!)))
+      : null,
   );
-  return { ...result, hasMore: full };
+  const games = opts.query ? rankByTitle(result.games, opts.query) : result.games;
+  return { ...result, games, hasMore: full };
 }
 
 /** Attend une promesse au plus `ms` millisecondes ; au-delà (ou en cas d'erreur) renvoie null. */
