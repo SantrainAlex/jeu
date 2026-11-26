@@ -18,7 +18,9 @@ export function TradingCard({
   badge,
   finish,
   hidden = false,
+  flipped = false,
   onReveal,
+  onOpen,
   style,
 }: {
   card: Card;
@@ -27,13 +29,17 @@ export function TradingCard({
   badge?: "new" | "dup";
   finish?: Finish;
   hidden?: boolean;
+  /** montre le dos de la carte (vue en grand) */
+  flipped?: boolean;
   onReveal?: () => void;
+  /** clic sur une carte déjà retournée : l'ouvrir en grand */
+  onOpen?: () => void;
   style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
   const r = rarityInfo(card.rarity);
   const year = card.released?.slice(0, 4);
-  const className = ["tcard", `rarity-${card.rarity}`, vitrail ? "vitrail" : "", finish ? `finish-${finish}` : "", hidden ? "hidden" : "revealed"].join(" ");
+  const className = ["tcard", `rarity-${card.rarity}`, vitrail ? "vitrail" : "", finish ? `finish-${finish}` : "", hidden ? "hidden" : "revealed", flipped ? "flipped" : "", onOpen && !hidden ? "zoomable" : ""].join(" ");
 
   // position de la souris sur la carte → inclinaison et reflet
   const onMove = (e: React.PointerEvent) => {
@@ -62,11 +68,11 @@ export function TradingCard({
       type="button"
       className={className}
       style={{ "--rarity": r.color, ...style } as React.CSSProperties}
-      onClick={hidden ? onReveal : undefined}
+      onClick={hidden ? onReveal : onOpen}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
-      aria-label={hidden ? "Retourner la carte" : `${card.name}, ${r.label}${vitrail ? `, vitrail numéro ${vitrail}` : ""}${finish ? `, finition ${FINISH_LABEL[finish]}` : ""}${badge === "new" ? ", nouvelle carte" : badge === "dup" ? ", doublon" : ""}`}
-      tabIndex={hidden ? 0 : -1}
+      aria-label={hidden ? "Retourner la carte" : `${card.name}, ${r.label}${vitrail ? `, vitrail numéro ${vitrail}` : ""}${finish ? `, finition ${FINISH_LABEL[finish]}` : ""}${badge === "new" ? ", nouvelle carte" : badge === "dup" ? ", doublon" : ""}${onOpen ? ", voir en grand" : ""}`}
+      tabIndex={hidden || onOpen ? 0 : -1}
     >
       <span className="tcard-inner">
         <span className="tcard-back" aria-hidden="true">
@@ -75,8 +81,13 @@ export function TradingCard({
         <span className="tcard-front">
           <span className="tcard-art">
             {card.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={card.image} alt="" loading="lazy" draggable={false} />
+              <>
+                {/* l'image entière, posée sur un fond flou de la même image pour remplir la carte */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="tcard-art-bg" src={card.image} alt="" loading="lazy" draggable={false} />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="tcard-art-img" src={card.image} alt="" loading="lazy" draggable={false} />
+              </>
             ) : (
               <span className="tcard-placeholder">{card.name.slice(0, 1)}</span>
             )}

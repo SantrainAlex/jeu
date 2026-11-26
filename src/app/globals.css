@@ -413,7 +413,12 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
 }
 .tcard-art { position: relative; flex: 1; min-height: 0; background: var(--surface-2); margin: 6px 6px 0; border-radius: 9px; overflow: hidden; }
-.tcard-art img { width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; }
+.tcard-art img { width: 100%; height: 100%; display: block; user-select: none; }
+/* l'image entière (sans la couper), sur un fond flou de la même image */
+.tcard-art .tcard-art-img { position: relative; object-fit: contain; }
+.tcard-art .tcard-art-bg { position: absolute; inset: 0; object-fit: cover; filter: blur(14px) brightness(0.6) saturate(1.2); transform: scale(1.2); }
+.tcard.zoomable { cursor: zoom-in; }
+.tcard.flipped .tcard-inner { transform: rotateY(180deg); }
 .tcard-placeholder {
   width: 100%; height: 100%; display: grid; place-items: center; font-family: var(--font-display), sans-serif;
   font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #2b2463, #123a52); color: rgba(255, 255, 255, 0.7);
@@ -737,6 +742,18 @@ code { background: var(--surface-2); border: 1px solid var(--line); padding: 0 0
 .lightbox-nav.prev { left: 1rem; }
 .lightbox-nav.next { right: 1rem; }
 .lightbox-close:hover, .lightbox-nav:hover { background: var(--primary); }
+
+/* Carte vue en grand */
+.card-viewer-body { color: var(--text); width: 100%; height: 100%; display: grid; place-content: center; justify-items: center; gap: 1.2rem; padding: 1rem; }
+.card-viewer-card { width: min(380px, 84vw, calc((100dvh - 9rem) * 5 / 7)); animation: card-zoom 0.35s var(--ease) both; }
+.card-viewer .tcard { cursor: pointer; width: 100%; }
+.card-viewer .tcard-name { font-size: 1.25rem; padding: 0.8rem 0.9rem 0.15rem; }
+.card-viewer .tcard-meta { font-size: 0.9rem; padding: 0 0.9rem 0.8rem; }
+.card-viewer .tcard-rarity { font-size: 0.82rem; }
+.card-viewer .tcard-art { margin: 10px 10px 0; }
+.card-viewer .tcard-back-logo { width: 96px; height: 96px; font-size: 2.8rem; border-radius: 22px; }
+.card-viewer-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+@keyframes card-zoom { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
 
 /* Lives Twitch */
 .live-dot {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CardTabs } from "@/components/CardTabs";
+import { useCardViewer } from "@/components/CardViewer";
 import { TradingCard } from "@/components/TradingCard";
 import { RARITIES, rarityInfo, type Card, type Rarity } from "@/lib/cards";
 import { coins, copies } from "@/lib/data";
@@ -40,6 +41,7 @@ export default function WorkshopPage() {
   const [gift, setGift] = useState<Card | null>(null);
   const [query, setQuery] = useState("");
   const [craftRarity, setCraftRarity] = useState<Rarity | null>(null);
+  const viewer = useCardViewer();
 
   useEffect(() => {
     fetch("/api/cartes")
@@ -211,6 +213,7 @@ export default function WorkshopPage() {
               key={gift.id + "-" + collection.cards[gift.id]?.count}
               card={gift}
               badge={collection.cards[gift.id]?.count === 1 ? "new" : "dup"}
+              onOpen={() => viewer.open({ card: gift })}
             />
           </div>
         )}
@@ -290,7 +293,12 @@ export default function WorkshopPage() {
           <div className="card-grid">
             {upgradable.map(({ o, f }) => (
               <div key={o.card.id} className="upgrade-item">
-                <TradingCard card={o.card} count={copies(o)} finish={o.finish} />
+                <TradingCard
+                  card={o.card}
+                  count={copies(o)}
+                  finish={o.finish}
+                  onOpen={() => viewer.open({ card: o.card, count: copies(o), finish: o.finish })}
+                />
                 <button
                   type="button"
                   className="button ghost"
@@ -305,6 +313,7 @@ export default function WorkshopPage() {
           </div>
         )}
       </section>
+      {viewer.element}
     </>
   );
 }
